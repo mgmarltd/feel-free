@@ -20,7 +20,13 @@ class SessionService {
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userProfile, userId }),
+        // Forward language at top level too — server's resolveLanguage()
+        // honors req.body.language first, then userProfile.language.
+        body: JSON.stringify({
+          userProfile,
+          userId,
+          language: userProfile?.language,
+        }),
         signal: ctrl.signal,
       });
     } catch (e) {

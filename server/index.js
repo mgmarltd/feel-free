@@ -129,6 +129,11 @@ app.post('/api/analysis/start', async (req, res) => {
   try {
     const { userProfile = {}, userId = 'default' } = req.body || {};
     const language = resolveLanguage(userProfile, { language: req.body?.language }) || 'en';
+    console.log(
+      `[analysis/start] language=${language}`,
+      `(body=${req.body?.language || 'none'},`,
+      `profile=${userProfile?.language || 'none'})`,
+    );
 
     if (!analysisAgentId) {
       analysisAgentId = await getOrCreateAnalysisAgent(language);
@@ -188,6 +193,11 @@ app.post('/api/session/start', async (req, res) => {
 
     // Resolve session language: explicit body override → profile → 'tr'
     const language = resolveLanguage(mergedProfile, { language: req.body.language });
+    console.log(
+      `[session/start] language=${language}`,
+      `(body=${req.body?.language || 'none'},`,
+      `profile=${mergedProfile?.language || 'none'})`,
+    );
 
     // Build personalized prompt and first message in the chosen language
     const dynamicPrompt = buildDynamicPrompt(mergedProfile, { language });

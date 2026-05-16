@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Character from './Character';
 import analysisService from '../services/analysisService';
 import { useOnboarding } from '../context/OnboardingContext';
+import { getLanguage } from '../services/userProfile';
 import { pcmChunksToWavBase64 } from '../utils/pcmToWav';
 import { playReadyCue } from '../utils/cueChime';
 import { COLORS } from '../constants/theme';
@@ -183,7 +184,12 @@ export default function AnalysisDrawer({ visible, onClose, onComplete, mode = 'v
         setIsAISpeaking(false);
       });
 
-      await analysisService.connect(onboardingData || {});
+      // Resolve language from the stored user profile (set by the home
+       // TR/EN toggle and the profile screen). Defaults pick up device
+       // locale on first launch — see userProfile.js DEFAULT_PROFILE.
+      const language = await getLanguage();
+      console.log('[analysisDrawer] connecting with language =', language);
+      await analysisService.connect(onboardingData || {}, { language });
       if (!mountedRef.current) return;
       setPhase('conversing');
 

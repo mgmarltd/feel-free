@@ -2,6 +2,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PROFILE_KEY = 'user_profile';
 
+// Detect device locale on first launch so an English-device user doesn't
+// get dropped into a Turkish session by default. Safe in RN — Intl is
+// available everywhere modern (Hermes ICU is on by default in RN 0.74+).
+function detectDeviceLanguage() {
+  try {
+    const locale = Intl?.DateTimeFormat?.().resolvedOptions?.()?.locale || '';
+    return locale.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 const DEFAULT_PROFILE = {
   name: null,
   age: null,
@@ -9,7 +21,7 @@ const DEFAULT_PROFILE = {
   dailyRoutine: null,
   feeling: null,
   knowsEFT: null,
-  language: 'tr',        // 'tr' | 'en' — speaking language for the session
+  language: detectDeviceLanguage(),  // 'tr' | 'en' — derived from device locale on first launch
   // AI-populated fields
   sessionCount: 0,
   lastSessionDate: null,
@@ -21,8 +33,15 @@ const DEFAULT_PROFILE = {
 
 export async function getLanguage() {
   const p = await getUserProfile();
-  return p.language === 'en' ? 'en' : 'tr';
+  // Accept whichever explicit value is stored; never silently override the
+  // user's choice. Only fall back to device locale if somehow nothing is set.
+  if (p?.language === 'en' || p?.language === 'tr') return p.language;
+  return detectDeviceLanguage();
 }
+
+// Re-exported so callers (e.g. AnalysisDrawer when storage is empty) can
+// resolve the device-locale fallback without re-implementing the check.
+export { detectDeviceLanguage };
 
 export async function setLanguage(lang) {
   const code = lang === 'en' ? 'en' : 'tr';
