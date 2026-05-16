@@ -176,9 +176,10 @@ async function createAnalysisAgent(language = 'en') {
       },
       tts: {
         voice_id: VOICE_ID,
-        // Turbo / multilingual voice is noticeably more expressive than Flash;
-        // worth the extra ~100ms for an onboarding moment that has to feel human.
-        model_id: 'eleven_turbo_v2_5',
+        // Turbo is noticeably more expressive than Flash. ElevenLabs
+        // requires English agents to use turbo_v2 / flash_v2 — v2.5 is
+        // multilingual only.
+        model_id: language === 'en' ? 'eleven_turbo_v2' : 'eleven_turbo_v2_5',
         stability: 0.55,
         similarity_boost: 0.75,
         style: 0,

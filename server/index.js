@@ -150,7 +150,8 @@ app.post('/api/analysis/start', async (req, res) => {
           },
           tts: {
             voice_id: process.env.ELEVENLABS_VOICE_ID,
-            model_id: 'eleven_turbo_v2_5',
+            // English agents must use turbo_v2/flash_v2; v2.5 is multilingual.
+            model_id: language === 'en' ? 'eleven_turbo_v2' : 'eleven_turbo_v2_5',
             stability: 0.55,
             similarity_boost: 0.75,
             style: 0,
@@ -219,9 +220,9 @@ app.post('/api/session/start', async (req, res) => {
           },
           tts: {
             voice_id: process.env.ELEVENLABS_VOICE_ID,
-            // Turbo is noticeably more expressive than Flash for the small
-            // latency cost; matches the (well-rated) analysis agent's config.
-            model_id: 'eleven_turbo_v2_5',
+            // ElevenLabs rule: English agents MUST use turbo_v2 / flash_v2;
+            // turbo_v2_5 / flash_v2_5 are multilingual (TR + others).
+            model_id: language === 'en' ? 'eleven_turbo_v2' : 'eleven_turbo_v2_5',
             // Energy tuning: low stability gives dynamic range (peaks/valleys
             // instead of monotone), a small style nudge brings warmth and
             // expression without the speed drift that 0.4 caused, speaker_boost
