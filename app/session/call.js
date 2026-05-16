@@ -27,6 +27,7 @@ import { COLORS } from '../../src/constants/theme';
 import { useOnboarding } from '../../src/context/OnboardingContext';
 import sessionService from '../../src/services/sessionService';
 import { getUserProfile, updateUserProfile } from '../../src/services/userProfile';
+import { endSession as endSessionApi } from '../../src/services/homeworkService';
 
 // Audio modes
 const PLAYBACK_MODE = {
@@ -440,6 +441,19 @@ export default function CallScreen() {
               sessionCount: (currentProfile.sessionCount || 0) + 1,
               lastSessionDate: new Date().toISOString(),
             });
+
+            // Ask the server to generate + save a homework based on this
+            // session. Best-effort: don't block the user's exit if it fails.
+            try {
+              const res = await endSessionApi({
+                sessionType: params.sessionType,
+                messages,
+                language: currentProfile.language || 'tr',
+              });
+              console.log('[call] homework created:', res?.homework?.title);
+            } catch (e) {
+              console.warn('[call] homework creation failed:', e?.message || e);
+            }
 
             router.replace({
               pathname: '/session/summary',

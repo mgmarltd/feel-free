@@ -16,6 +16,7 @@ const {
 const { buildDynamicPrompt, getFirstMessage, resolveLanguage } = require('./eftPrompt');
 const affirmations = require('./affirmations');
 const userStore = require('./userStore');
+const homeworks = require('./homeworks');
 
 const app = express();
 app.use(cors());
@@ -263,6 +264,60 @@ app.post('/api/user/update', (req, res) => {
   } catch (error) {
     console.error('User update error:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── Homework — created at the end of every session ─────────────────────
+// Client posts here when the user ends a session. The server picks a topic
+// from the session payload, pulls matching affirmations from the library,
+// and saves a homework on the user profile.
+app.post('/api/session/end', (req, res) => {
+  try {
+    const {
+      userId = 'default',
+      sessionType,
+      topic: explicitTopic,
+      messages = [],
+      language,
+    } = req.body || {};
+    const userText = homeworks.pickFromText(messages);
+    const topic = explicitTopic
+      || (sessionType ? homeworks.detectTopic(sessionType) : null)
+      || homeworks.detectTopic(userText)
+      || 'default';
+
+    const profile = userStore.getUser(userId) || {};
+    const lang = language || profile.language || 'tr';
+
+    const hw = homeworks.buildHomework({ topic, language: lang, userText });
+    homeworks.addForUser(userId, hw);
+    console.log(`[homework] created for ${userId}: ${hw.title} (topic=${hw.topic})`);
+    res.json({ success: true, homework: hw });
+  } catch (e) {
+    console.error('Session end error:', e.message || e);
+    res.status(500).json({ error: 'Failed to end session', details: e.message });
+  }
+});
+
+app.get('/api/homeworks/:userId', (req, res) => {
+  try {
+    const list = homeworks.listForUser(req.params.userId);
+    res.json({ homeworks: list });
+  } catch (e) {
+    console.error('Homework list error:', e.message || e);
+    res.status(500).json({ error: 'Failed to load homeworks' });
+  }
+});
+
+app.post('/api/homework/:id/complete', (req, res) => {
+  try {
+    const { userId = 'default' } = req.body || {};
+    const updated = homeworks.completeForUser(userId, req.params.id);
+    if (!updated) return res.status(404).json({ error: 'Homework not found' });
+    res.json({ success: true, homework: updated });
+  } catch (e) {
+    console.error('Homework complete error:', e.message || e);
+    res.status(500).json({ error: 'Failed to complete homework' });
   }
 });
 
