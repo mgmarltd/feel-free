@@ -1,0 +1,35 @@
+{
+  "default": {
+    "name": "Süleyman",
+    "age": "25 - 34",
+    "gender": "Male",
+    "dailyRoutine": "Moderately active",
+    "feeling": "Frustrated & angry",
+    "knowsEFT": "I've tried it a few times",
+    "sessionCount": 15,
+    "lastSessionDate": "2026-05-15T11:54:23.839Z",
+    "knownIssues": [],
+    "preferences": [],
+    "emotionalHistory": [],
+    "notes": null,
+    "feelingIntensity": "1",
+    "sessionType": "release",
+    "updatedAt": "2026-05-15T11:54:31.105Z",
+    "language": "en"
+  },
+  "smoke-test": {
+    "name": "Ada",
+    "knownIssues": [
+      "kaygı"
+    ],
+    "updatedAt": "2026-05-15T08:58:01.813Z"
+  },
+  "smoke": {
+    "name": "Ada",
+    "updatedAt": "2026-05-15T11:50:20.266Z",
+    "knownIssues": [
+      "kaygı"
+    ],
+    "language": "en"
+  }
+}
