@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, GRADIENTS } from '../src/constants/theme';
 import Character from '../src/components/Character';
+import { getUserProfile } from '../src/services/userProfile';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -12,31 +13,52 @@ export default function SplashScreen() {
   const titleFade = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
+    let cancelled = false;
+    let timer = null;
+
+    (async () => {
+      // Check auth FIRST so logged-in users skip the splash entirely.
+      try {
+        const profile = await getUserProfile();
+        if (cancelled) return;
+        if (profile?.authToken) {
+          router.replace('/home');
+          return;
+        }
+      } catch {
+        // fall through to onboarding splash
+      }
+
+      // Not logged in → play the splash animation then route to onboarding.
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 6,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.timing(titleFade, {
           toValue: 1,
-          duration: 800,
+          duration: 600,
           useNativeDriver: true,
         }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 6,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(titleFade, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
+      ]).start();
 
-    const timer = setTimeout(() => {
-      router.replace('/onboarding/welcome');
-    }, 2800);
+      timer = setTimeout(() => {
+        if (!cancelled) router.replace('/onboarding/welcome');
+      }, 2800);
+    })();
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   return (

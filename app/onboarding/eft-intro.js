@@ -64,7 +64,7 @@ export default function EFTIntroScreen() {
           ))}
         </ScrollView>
         <ContinueButton
-          onPress={() => router.push('/onboarding/paywall')}
+          onPress={() => router.push('/onboarding/login')}
           title="I'm Ready!"
         />
       </SafeAreaView>

@@ -44,7 +44,7 @@ export default function WelcomeScreen() {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
-      router.push('/onboarding/age');
+      router.push('/onboarding/questions');
     }
   };
 

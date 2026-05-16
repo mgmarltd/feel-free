@@ -12,7 +12,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Haptics from 'expo-haptics';
 import { pcmChunksToWavBase64 } from '../../src/utils/pcmToWav';
+import { playReadyCue } from '../../src/utils/cueChime';
 
 // Initial buffer before starting playback — smooths out network jitter so the
 // agent's voice doesn't stutter on slow connections. Start as soon as we have
@@ -123,19 +125,25 @@ export default function CallScreen() {
   }, []);
 
   const initSession = async () => {
+    const t0 = Date.now();
+    console.log('[call] initSession start');
     try {
+      console.log('[call] requesting mic permission…');
       const { granted } = await Audio.requestPermissionsAsync();
+      console.log('[call] mic permission =', granted, `(${Date.now() - t0}ms)`);
       if (!granted) {
         Alert.alert('İzin gerekli', 'Seans için mikrofon erişimi gereklidir');
+        setAiText('Mikrofon izni reddedildi.');
         return;
       }
 
-      // Start in playback mode (speaker)
+      console.log('[call] setting playback mode…');
       await Audio.setAudioModeAsync(PLAYBACK_MODE);
 
       // Set up event handlers
       sessionService.on('session_started', () => {
         if (!mountedRef.current) return;
+        console.log('[call] session_started event received');
         setAiText('Bağlandı! Calm burada...');
       });
 
@@ -161,14 +169,19 @@ export default function CallScreen() {
       });
 
       sessionService.on('error', (data) => {
-        console.error('Session error:', data.message);
+        console.error('[call] session error event:', data?.message);
+        if (mountedRef.current) {
+          setAiText(`Bağlantı hatası: ${data?.message || 'bilinmiyor'}`);
+        }
       });
 
       sessionService.on('disconnected', () => {
+        console.log('[call] disconnected event received');
         if (mountedRef.current) setIsConnected(false);
       });
 
       // Load persistent user profile and merge with onboarding data
+      console.log('[call] loading user profile…');
       const storedProfile = await getUserProfile();
       const fullProfile = {
         ...storedProfile,
@@ -176,9 +189,13 @@ export default function CallScreen() {
         feelingIntensity: params.feelingIntensity,
         sessionType: params.sessionType,
       };
+      console.log('[call] profile ready, name:', fullProfile?.name || '(new)');
 
+      console.log('[call] calling sessionService.connect…');
       await sessionService.connect(fullProfile);
+      console.log('[call] sessionService.connect resolved', `(total ${Date.now() - t0}ms)`);
 
+      if (!mountedRef.current) return;
       setIsConnected(true);
       setAiText('Bağlandı! Rehberin hazırlanıyor...');
 
@@ -187,8 +204,10 @@ export default function CallScreen() {
         if (mountedRef.current) startRecordingLoop();
       }, 1500);
     } catch (error) {
-      console.error('Session init error:', error);
-      setAiText('Bağlanılamadı. Bağlantınızı kontrol edip tekrar deneyin.');
+      console.error('[call] initSession FAILED:', error?.message || error);
+      if (mountedRef.current) {
+        setAiText(`Bağlanılamadı: ${error?.message || 'bağlantı hatası'}`);
+      }
     }
   };
 
@@ -314,6 +333,18 @@ export default function CallScreen() {
     // playback eliminates per-chunk gaps that sound like stutters.
     const chunks = audioQueueRef.current.splice(0, audioQueueRef.current.length);
     if (chunks.length === 0) {
+      // AI just finished its turn — cue the user that it's their turn to speak
+      // (matches the AnalysisDrawer flow).
+      if (mountedRef.current) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        await playReadyCue();
+        // A new AI chunk could have streamed in during the cue — drain it
+        // instead of stopping the playback session.
+        if (audioQueueRef.current.length > 0) {
+          playNextChunk();
+          return;
+        }
+      }
       isPlayingRef.current = false;
       setIsAISpeaking(false);
       return;

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientBackground from '../src/components/GradientBackground';
-import Character from '../src/components/Character';
+import BottomDock, { DOCK_HEIGHT } from '../src/components/BottomDock';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { useOnboarding } from '../src/context/OnboardingContext';
 import { getLanguage, setLanguage } from '../src/services/userProfile';
@@ -78,7 +78,6 @@ export default function HomeScreen() {
                   <Text style={[styles.langPillText, lang === 'en' && styles.langPillTextActive]}>EN</Text>
                 </TouchableOpacity>
               </View>
-              <Character size={60} mood="wink" />
             </View>
           </View>
 
@@ -128,9 +127,10 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
 
-          <View style={{ height: 30 }} />
+          <View style={{ height: DOCK_HEIGHT + 30 }} />
         </ScrollView>
       </SafeAreaView>
+      <BottomDock />
     </GradientBackground>
   );
 }

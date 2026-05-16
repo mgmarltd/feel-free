@@ -2,7 +2,17 @@ require('dotenv').config();
 const http = require('http');
 const express = require('express');
 const cors = require('cors');
-const { createAgent, getOrCreateAgent, getSignedUrl, updateAgent } = require('./elevenlabs');
+const {
+  createAgent,
+  getOrCreateAgent,
+  getSignedUrl,
+  updateAgent,
+  textToSpeech,
+  getOrCreateAnalysisAgent,
+  ANALYSIS_PROMPT,
+  ANALYSIS_FIRST_MESSAGE_EN,
+  ANALYSIS_FIRST_MESSAGE_TR,
+} = require('./elevenlabs');
 const { buildDynamicPrompt, getFirstMessage, resolveLanguage } = require('./eftPrompt');
 const affirmations = require('./affirmations');
 const userStore = require('./userStore');
@@ -12,10 +22,150 @@ app.use(cors());
 app.use(express.json());
 
 let agentId = null;
+let analysisAgentId = null;
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', agentId, timestamp: Date.now() });
+});
+
+// ─── Email magic-code auth ──────────────────────────────────────────────
+// In-memory store, fine for dev. Swap for Redis/DB in production.
+const pendingCodes = new Map();
+const CODE_TTL_MS = 10 * 60 * 1000;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function newCode() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+async function sendCodeEmail(email, code) {
+  // If RESEND_API_KEY is set, actually send the email. Otherwise just log.
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM || 'Feel Free <onboarding@resend.dev>';
+  if (!apiKey) {
+    console.log(`[auth] (dev) verification code for ${email}: ${code}`);
+    return;
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: 'Your Feel Free verification code',
+      text: `Your code is ${code}. It expires in 10 minutes.`,
+      html: `<p>Your Feel Free verification code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p><p>It expires in 10 minutes.</p>`,
+    }),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new Error(`Resend failed: ${res.status} ${errText}`);
+  }
+}
+
+app.post('/api/auth/email/request', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) {
+      return res.status(400).json({ error: 'Invalid email' });
+    }
+    const code = newCode();
+    pendingCodes.set(email, { code, expiresAt: Date.now() + CODE_TTL_MS });
+    await sendCodeEmail(email, code);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Auth request error:', e.message || e);
+    res.status(500).json({ error: 'Failed to send code', details: e.message });
+  }
+});
+
+app.post('/api/auth/email/verify', (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const code = String(req.body?.code || '').trim();
+    if (!email || !code) return res.status(400).json({ error: 'Missing fields' });
+
+    const entry = pendingCodes.get(email);
+    if (!entry) return res.status(400).json({ error: 'No code requested' });
+    if (Date.now() > entry.expiresAt) {
+      pendingCodes.delete(email);
+      return res.status(400).json({ error: 'Code expired' });
+    }
+    if (entry.code !== code) {
+      return res.status(400).json({ error: 'Invalid code' });
+    }
+    pendingCodes.delete(email);
+
+    // Minimal token — replace with real JWT/session when ready
+    const token = `tk_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    res.json({ success: true, token, email });
+  } catch (e) {
+    console.error('Auth verify error:', e.message || e);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// One-shot TTS — used by the onboarding self-analysis scripted flow
+app.post('/api/tts', async (req, res) => {
+  try {
+    const { text, language } = req.body || {};
+    if (!text) return res.status(400).json({ error: 'text required' });
+    const audio = await textToSpeech(text, undefined, language);
+    res.json({ audio, mimeType: 'audio/mpeg' });
+  } catch (e) {
+    console.error('TTS error:', e.message || e);
+    res.status(500).json({ error: e.message || 'TTS failed' });
+  }
+});
+
+// Start the onboarding self-analysis session — short bidirectional convo
+// that ends with a fixed closing phrase the client uses as the auto-close signal.
+app.post('/api/analysis/start', async (req, res) => {
+  try {
+    const { userProfile = {}, userId = 'default' } = req.body || {};
+    const language = resolveLanguage(userProfile, { language: req.body?.language }) || 'en';
+
+    if (!analysisAgentId) {
+      analysisAgentId = await getOrCreateAnalysisAgent(language);
+    }
+
+    // Refresh per-request so language + first_message stay correct
+    try {
+      await updateAgent(analysisAgentId, {
+        conversation_config: {
+          agent: {
+            prompt: { prompt: ANALYSIS_PROMPT, llm: 'gpt-4o', temperature: 0.75 },
+            first_message: language === 'tr' ? ANALYSIS_FIRST_MESSAGE_TR : ANALYSIS_FIRST_MESSAGE_EN,
+            language,
+          },
+          tts: {
+            voice_id: process.env.ELEVENLABS_VOICE_ID,
+            model_id: 'eleven_turbo_v2_5',
+            stability: 0.55,
+            similarity_boost: 0.75,
+            style: 0,
+            use_speaker_boost: true,
+            speed: 1.05,
+            optimize_streaming_latency: 0,
+          },
+          turn: { mode: 'turn', turn_timeout: 1.2, silence_end_call_timeout: 20 },
+          asr: { quality: 'high', provider: 'elevenlabs', user_input_audio_format: 'pcm_16000' },
+        },
+      });
+    } catch (e) {
+      console.error('Analysis agent update failed:', e.message);
+    }
+
+    const signedUrl = await getSignedUrl(analysisAgentId);
+    res.json({ agentId: analysisAgentId, signedUrl, language });
+  } catch (error) {
+    console.error('Analysis start error:', error.message);
+    res.status(500).json({ error: 'Failed to start analysis', details: error.message });
+  }
 });
 
 // Start a session — updates the agent prompt with user context, returns signed URL
@@ -50,25 +200,32 @@ app.post('/api/session/start', async (req, res) => {
             prompt: {
               prompt: dynamicPrompt,
               llm: 'gpt-4o',
-              temperature: 0.5,
+              // Bumped from 0.5 → 0.75 — less formulaic, warmer phrasing.
+              temperature: 0.75,
             },
             first_message: firstMessage,
             language,
           },
           tts: {
             voice_id: process.env.ELEVENLABS_VOICE_ID,
-            // English agents must use flash_v2 / turbo_v2; multilingual flash_v2_5 for Turkish.
-            model_id: language === 'en' ? 'eleven_flash_v2' : 'eleven_flash_v2_5',
-            stability: 0.7,
-            similarity_boost: 0.8,
-            style: 0,
+            // Turbo is noticeably more expressive than Flash for the small
+            // latency cost; matches the (well-rated) analysis agent's config.
+            model_id: 'eleven_turbo_v2_5',
+            // Energy tuning: low stability gives dynamic range (peaks/valleys
+            // instead of monotone), a small style nudge brings warmth and
+            // expression without the speed drift that 0.4 caused, speaker_boost
+            // keeps presence high. Speed slightly up for a brighter feel.
+            stability: 0.4,
+            similarity_boost: 0.85,
+            style: 0.2,
             use_speaker_boost: true,
-            speed: 1.0,
-            optimize_streaming_latency: 1,
+            speed: 1.05,
+            optimize_streaming_latency: 0,
           },
           turn: {
             mode: 'turn',
-            turn_timeout: 1.5,
+            // Snappier turn-taking.
+            turn_timeout: 1.2,
             silence_end_call_timeout: 30,
           },
           asr: {
