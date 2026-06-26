@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Haptics from 'expo-haptics';
 import GradientBackground from '../src/components/GradientBackground';
 import BottomDock, { DOCK_HEIGHT } from '../src/components/BottomDock';
 import { COLORS, FONTS } from '../src/constants/theme';
 import { useOnboarding } from '../src/context/OnboardingContext';
 import { getLanguage, setLanguage } from '../src/services/userProfile';
+import { getDailyTasks, toggleDailyTask } from '../src/services/dailyTasks';
 
 // `key` must match a slug in server/eftPrompt.js QUICK_SESSION_TOPICS so the
 // session opens with the right focused prompt.
@@ -18,20 +20,36 @@ const quickSessions = [
   { key: 'better-sleep', title: 'Better Sleep', duration: '10 min', emoji: '🌙', color: 'rgba(99,102,241,0.2)' },
 ];
 
-const dailyTasks = [
-  { title: 'Morning Tapping', completed: false },
-  { title: 'Gratitude Check-in', completed: false },
-  { title: 'Evening Wind Down', completed: false },
-];
-
 export default function HomeScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
   const [lang, setLang] = useState('tr');
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
     getLanguage().then(setLang).catch(() => {});
   }, []);
+
+  // Reload tasks on focus (also handles the midnight reset) and on language
+  // change — the localized titles depend on `lang`.
+  useFocusEffect(
+    useCallback(() => {
+      getDailyTasks(lang).then(setTasks).catch(() => {});
+    }, [lang])
+  );
+
+  const handleToggleTask = async (id) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    // Optimistic flip; revert if persistence fails.
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    try {
+      await toggleDailyTask(id);
+    } catch (e) {
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)));
+    }
+  };
+
+  const completedCount = tasks.filter((t) => t.completed).length;
 
   const switchLang = async (next) => {
     if (next === lang) return;
@@ -119,13 +137,28 @@ export default function HomeScreen() {
           </ScrollView>
 
           {/* Daily Tasks */}
-          <Text style={styles.sectionTitle}>Daily Tasks</Text>
-          {dailyTasks.map((task, i) => (
-            <TouchableOpacity key={i} activeOpacity={0.7} style={styles.taskCard}>
-              <View style={styles.taskCheck}>
-                <View style={styles.taskCheckInner} />
+          <View style={styles.tasksHeader}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>
+              {lang === 'en' ? 'Daily Tasks' : 'Günlük Görevler'}
+            </Text>
+            {tasks.length > 0 && (
+              <Text style={styles.tasksProgress}>{completedCount}/{tasks.length}</Text>
+            )}
+          </View>
+          {tasks.map((task) => (
+            <TouchableOpacity
+              key={task.id}
+              activeOpacity={0.7}
+              style={[styles.taskCard, task.completed && styles.taskCardDone]}
+              onPress={() => handleToggleTask(task.id)}
+            >
+              <View style={[styles.taskCheck, task.completed && styles.taskCheckDone]}>
+                {task.completed && <Text style={styles.taskCheckMark}>✓</Text>}
               </View>
-              <Text style={styles.taskTitle}>{task.title}</Text>
+              <Text style={styles.taskEmoji}>{task.emoji}</Text>
+              <Text style={[styles.taskTitle, task.completed && styles.taskTitleDone]}>
+                {task.title}
+              </Text>
             </TouchableOpacity>
           ))}
 
@@ -259,6 +292,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.whiteMuted,
   },
+  tasksHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  tasksProgress: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.purpleLight,
+  },
   taskCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,6 +312,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.06)',
+  },
+  taskCardDone: {
+    backgroundColor: 'rgba(139,92,246,0.12)',
+    borderColor: 'rgba(139,92,246,0.3)',
   },
   taskCheck: {
     width: 24,
@@ -279,13 +327,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  taskCheckInner: {
-    width: 0,
-    height: 0,
+  taskCheckDone: {
+    backgroundColor: COLORS.purple,
+    borderColor: COLORS.purple,
+  },
+  taskCheckMark: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
+  },
+  taskEmoji: {
+    fontSize: 18,
+    marginRight: 10,
   },
   taskTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
+    flex: 1,
+  },
+  taskTitleDone: {
+    color: COLORS.whiteMuted,
+    textDecorationLine: 'line-through',
   },
 });

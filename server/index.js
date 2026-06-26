@@ -18,6 +18,7 @@ const affirmations = require('./affirmations');
 const userStore = require('./userStore');
 const homeworks = require('./homeworks');
 const promptStore = require('./promptStore');
+const dailyTaskStore = require('./dailyTaskStore');
 const { createAdminRouter } = require('./admin');
 
 const app = express();
@@ -352,6 +353,17 @@ app.post('/api/homework/:id/complete', (req, res) => {
 app.get('/api/user/:userId', (req, res) => {
   const profile = userStore.getUser(req.params.userId);
   res.json({ profile: profile || {} });
+});
+
+// Public: the live Daily Tasks list for the app Home screen (enabled only).
+// Completion is tracked locally on-device, keyed by task id.
+app.get('/api/daily-tasks', (req, res) => {
+  try {
+    res.json({ tasks: dailyTaskStore.getTasks() });
+  } catch (e) {
+    console.error('Daily tasks error:', e.message || e);
+    res.status(500).json({ error: 'Failed to load daily tasks' });
+  }
 });
 
 // Search the Problem → Cause → Affirmation library

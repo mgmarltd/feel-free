@@ -16,6 +16,7 @@ const express = require('express');
 const userStore = require('./userStore');
 const affirmations = require('./affirmations');
 const promptStore = require('./promptStore');
+const dailyTaskStore = require('./dailyTaskStore');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -324,6 +325,25 @@ function createAdminRouter() {
     }
     promptStore.reset(req.params.key);
     res.json({ success: true, prompts: promptStore.getAll() });
+  });
+
+  // ─── Daily tasks (view + edit) ──────────────────────────────────────────
+  router.get('/daily-tasks', requireAdmin, (req, res) => {
+    res.json(dailyTaskStore.getAdminView());
+  });
+
+  // Body: { tasks: [{ id?, emoji, title_en, title_tr, enabled }] } — replaces
+  // the whole list.
+  router.put('/daily-tasks', requireAdmin, (req, res) => {
+    const result = dailyTaskStore.setTasks(req.body?.tasks, new Date().toISOString());
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(dailyTaskStore.getAdminView());
+  });
+
+  // Revert the daily-task list to the built-in defaults.
+  router.post('/daily-tasks/reset', requireAdmin, (req, res) => {
+    dailyTaskStore.reset();
+    res.json(dailyTaskStore.getAdminView());
   });
 
   return router;

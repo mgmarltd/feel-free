@@ -198,4 +198,34 @@ export async function resetPrompt(key: string) {
   );
 }
 
+export interface DailyTask {
+  id: string;
+  emoji: string;
+  title_en: string;
+  title_tr: string;
+  enabled: boolean;
+}
+
+export interface DailyTasksView {
+  tasks: DailyTask[];
+  defaults: DailyTask[];
+  isCustomized: boolean;
+  updatedAt: string | null;
+}
+
+export async function fetchDailyTasks() {
+  return request<DailyTasksView>("/api/admin/daily-tasks");
+}
+
+export async function saveDailyTasks(tasks: DailyTask[]) {
+  return request<DailyTasksView>("/api/admin/daily-tasks", {
+    method: "PUT",
+    body: JSON.stringify({ tasks }),
+  });
+}
+
+export async function resetDailyTasks() {
+  return request<DailyTasksView>("/api/admin/daily-tasks/reset", { method: "POST" });
+}
+
 export { API_BASE };
