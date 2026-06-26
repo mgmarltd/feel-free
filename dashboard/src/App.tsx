@@ -9,7 +9,7 @@ import Prompts from "./pages/Prompts";
 import DailyTasks from "./pages/DailyTasks";
 import QuickSessions from "./pages/QuickSessions";
 import Homeworks from "./pages/Homeworks";
-import AutomationPage from "./pages/Automation";
+import Notifications from "./pages/Notifications";
 
 export default function App() {
   return (
@@ -23,7 +23,9 @@ export default function App() {
       <Route path="/daily-tasks" element={<ProtectedRoute><DailyTasks /></ProtectedRoute>} />
       <Route path="/quick-sessions" element={<ProtectedRoute><QuickSessions /></ProtectedRoute>} />
       <Route path="/homeworks" element={<ProtectedRoute><Homeworks /></ProtectedRoute>} />
-      <Route path="/automation" element={<ProtectedRoute><AutomationPage /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      {/* Back-compat: old /automation deep links land on the Notifications page. */}
+      <Route path="/automation" element={<Navigate to="/notifications" replace />} />
       <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>
   );

@@ -17,7 +17,7 @@ const items: Item[] = [
   { to: "/quick-sessions", label: "Quick Sessions", Icon: IconSpark },
   { to: "/homeworks", label: "Homeworks", Icon: IconBook },
   { to: "/daily-tasks", label: "Daily Tasks", Icon: IconCheck },
-  { to: "/automation", label: "Automation", Icon: IconBell },
+  { to: "/notifications", label: "Notifications", Icon: IconBell },
 ];
 
 export function Sidebar({
