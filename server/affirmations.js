@@ -85,8 +85,25 @@ function getById(id) {
   return data.entries.find((e) => e.id === id) || null;
 }
 
+// Pick a random entry, optionally biased to a topic/issue. Only entries with at
+// least one affirmation text are eligible. Returns null if the library is empty.
+function randomEntry({ issues = [] } = {}) {
+  let pool = [];
+  if (Array.isArray(issues) && issues.filter(Boolean).length) {
+    pool = findByIssues(issues.filter(Boolean), { perIssue: 12 });
+  }
+  if (!pool.length) pool = loadAll().entries;
+  // Prefer fully bilingual entries so each language gets its own text; fall
+  // back to entries with at least one affirmation.
+  const both = pool.filter((e) => e && e.affirmation_en && e.affirmation_tr);
+  const either = pool.filter((e) => e && (e.affirmation_en || e.affirmation_tr));
+  const chosen = both.length ? both : either;
+  if (!chosen.length) return null;
+  return chosen[Math.floor(Math.random() * chosen.length)];
+}
+
 function count() {
   return loadAll().count;
 }
 
-module.exports = { search, findByIssues, getById, count, loadAll };
+module.exports = { search, findByIssues, getById, count, loadAll, randomEntry };

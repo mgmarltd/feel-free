@@ -313,20 +313,32 @@ export async function resetHomeworkConfig() {
   return request<HomeworkConfigView>("/api/admin/homework-config/reset", { method: "POST" });
 }
 
+export type AutomationType = "custom" | "affirmation";
+
 export interface Automation {
   id: string;
+  type: AutomationType;
   name: string;
   enabled: boolean;
   title_en: string;
   title_tr: string;
   body_en: string;
   body_tr: string;
+  topic: string;
   time: string; // "HH:MM"
   days: number[]; // 0=Sun..6=Sat; [] = every day
   timezone: string;
   lastSentDate: string | null;
   lastRunAt: string | null;
   createdAt: string | null;
+}
+
+export interface AffirmationSample {
+  id: string;
+  affirmation_en: string;
+  affirmation_tr: string;
+  symptom_en: string;
+  symptom_tr: string;
 }
 
 export interface PushStats {
@@ -343,7 +355,7 @@ export interface SendResult {
 
 export type AutomationInput = Pick<
   Automation,
-  "name" | "enabled" | "title_en" | "title_tr" | "body_en" | "body_tr" | "time" | "days" | "timezone"
+  "type" | "name" | "enabled" | "title_en" | "title_tr" | "body_en" | "body_tr" | "topic" | "time" | "days" | "timezone"
 >;
 
 export async function fetchAutomations() {
@@ -376,6 +388,11 @@ export async function sendAutomation(id: string) {
     `/api/admin/automations/${encodeURIComponent(id)}/send`,
     { method: "POST" },
   );
+}
+
+export async function fetchAffirmationSample(topic?: string) {
+  const q = topic ? `?topic=${encodeURIComponent(topic)}` : "";
+  return request<{ sample: AffirmationSample | null }>(`/api/admin/affirmation-sample${q}`);
 }
 
 export async function broadcastPush(input: {

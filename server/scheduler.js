@@ -53,14 +53,8 @@ async function runDueAutomation(automation) {
   // Mark BEFORE sending so a slow send can't double-fire on the next tick.
   automationStore.markSent(automation.id, now.date, new Date().toISOString());
   try {
-    const res = await pushService.broadcast({
-      title_en: automation.title_en,
-      title_tr: automation.title_tr,
-      body_en: automation.body_en,
-      body_tr: automation.body_tr,
-      data: { type: 'automation', id: automation.id },
-    });
-    console.log(`[scheduler] fired "${automation.name}" → sent=${res.sent} failed=${res.failed} audience=${res.audience}`);
+    const res = await pushService.broadcast(pushService.resolvePayload(automation));
+    console.log(`[scheduler] fired "${automation.name}" (${automation.type || 'custom'}) → sent=${res.sent} failed=${res.failed} audience=${res.audience}`);
   } catch (e) {
     console.error(`[scheduler] automation "${automation.name}" send error:`, e.message || e);
   }

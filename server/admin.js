@@ -22,6 +22,7 @@ const homeworkConfigStore = require('./homeworkConfigStore');
 const automationStore = require('./automationStore');
 const pushStore = require('./pushStore');
 const pushService = require('./pushService');
+const affirmationsLib = require('./affirmations');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -420,15 +421,28 @@ function createAdminRouter() {
     const a = automationStore.get(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     try {
-      const result = await pushService.broadcast({
-        title_en: a.title_en, title_tr: a.title_tr,
-        body_en: a.body_en, body_tr: a.body_tr,
-        data: { type: 'automation', id: a.id },
-      });
+      const result = await pushService.broadcast(pushService.resolvePayload(a));
       res.json({ success: true, result });
     } catch (e) {
       res.status(500).json({ error: e.message || 'Send failed' });
     }
+  });
+
+  // Preview a random affirmation (optionally topic-biased) for the
+  // Affirmations notification editor.
+  router.get('/affirmation-sample', requireAdmin, (req, res) => {
+    const topic = String(req.query.topic || '').trim();
+    const entry = affirmationsLib.randomEntry({ issues: topic ? [topic] : [] });
+    if (!entry) return res.json({ sample: null });
+    res.json({
+      sample: {
+        id: entry.id,
+        affirmation_en: entry.affirmation_en || '',
+        affirmation_tr: entry.affirmation_tr || '',
+        symptom_en: entry.symptom_en || '',
+        symptom_tr: entry.symptom_tr || '',
+      },
+    });
   });
 
   // Ad-hoc broadcast (used for "Send test now" / one-off announcements).

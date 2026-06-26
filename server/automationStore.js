@@ -59,14 +59,18 @@ function normDays(v) {
 }
 
 // Normalize the editable fields from an admin payload.
+// type: 'custom' (fixed body) | 'affirmation' (body picked from the library at
+// send time). topic: optional issue filter for affirmation type.
 function normalizeInput(input = {}) {
   return {
+    type: input.type === 'affirmation' ? 'affirmation' : 'custom',
     name: str(input.name, MAX_SHORT, 'Untitled automation'),
     enabled: input.enabled !== false,
     title_en: str(input.title_en, MAX_SHORT),
     title_tr: str(input.title_tr, MAX_SHORT),
     body_en: str(input.body_en, 500),
     body_tr: str(input.body_tr, 500),
+    topic: str(input.topic, MAX_SHORT),
     time: normTime(input.time),
     days: normDays(input.days),
     timezone: str(input.timezone, 64, DEFAULT_TZ),
@@ -75,7 +79,10 @@ function normalizeInput(input = {}) {
 
 function validate(n) {
   if (!n.title_en && !n.title_tr) return 'Needs a title in at least one language';
-  if (!n.body_en && !n.body_tr) return 'Needs a body in at least one language';
+  // Affirmation notifications generate their body from the library at send time.
+  if (n.type !== 'affirmation' && !n.body_en && !n.body_tr) {
+    return 'Needs a body in at least one language';
+  }
   return null;
 }
 

@@ -4,6 +4,7 @@
 // reads back tickets, and prunes tokens Expo reports as DeviceNotRegistered.
 
 const pushStore = require('./pushStore');
+const affirmations = require('./affirmations');
 
 const EXPO_URL = 'https://exp.host/--/api/v2/push/send';
 // Optional — raises rate limits. Set EXPO_ACCESS_TOKEN in .env if you have one.
@@ -103,4 +104,30 @@ async function broadcast(payload = {}) {
   );
 }
 
-module.exports = { sendToTokens, broadcast };
+// Build the broadcast payload for an automation. For 'affirmation' type, pick
+// one random library entry (optionally topic-biased) and use the SAME entry for
+// both languages so a single send is coherent. Falls back to a fixed line if
+// the library is empty.
+function resolvePayload(automation) {
+  if (automation.type === 'affirmation') {
+    const entry = affirmations.randomEntry({ issues: automation.topic ? [automation.topic] : [] });
+    const en = entry?.affirmation_en || entry?.affirmation_tr || 'I love and approve of myself.';
+    const tr = entry?.affirmation_tr || entry?.affirmation_en || 'Kendimi seviyorum ve onaylıyorum.';
+    return {
+      title_en: automation.title_en || 'Daily affirmation',
+      title_tr: automation.title_tr || 'Günün olumlaması',
+      body_en: en,
+      body_tr: tr,
+      data: { type: 'affirmation', id: automation.id, affirmationId: entry?.id || null },
+    };
+  }
+  return {
+    title_en: automation.title_en,
+    title_tr: automation.title_tr,
+    body_en: automation.body_en,
+    body_tr: automation.body_tr,
+    data: { type: 'automation', id: automation.id },
+  };
+}
+
+module.exports = { sendToTokens, broadcast, resolvePayload };
