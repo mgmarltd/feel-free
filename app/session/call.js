@@ -145,7 +145,7 @@ export default function CallScreen() {
       sessionService.on('session_started', () => {
         if (!mountedRef.current) return;
         console.log('[call] session_started event received');
-        setAiText('Bağlandı! Calm burada...');
+        setAiText('Bağlandı! Calmutopia burada...');
       });
 
       sessionService.on('ai_text', (data) => {
@@ -614,7 +614,7 @@ export default function CallScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.micHint}>
-            {isMuted ? 'Sesi aç' : isAISpeaking ? 'Calm konuşuyor...' : 'Seni dinliyor...'}
+            {isMuted ? 'Sesi aç' : isAISpeaking ? 'Calmutopia konuşuyor...' : 'Seni dinliyor...'}
           </Text>
         </View>
       </SafeAreaView>

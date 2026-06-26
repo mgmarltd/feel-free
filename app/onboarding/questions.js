@@ -14,6 +14,7 @@ import WheelPicker from '../../src/components/WheelPicker';
 import Character from '../../src/components/Character';
 import AnalysisDrawer from '../../src/components/AnalysisDrawer';
 import OptimizingProgress from '../../src/components/OptimizingProgress';
+import OnboardingInfo from '../../src/components/OnboardingInfo';
 import ContinueButton from '../../src/components/ContinueButton';
 import { useOnboarding } from '../../src/context/OnboardingContext';
 import { FONTS } from '../../src/constants/theme';
@@ -78,9 +79,18 @@ const STEPS = [
   },
   {
     key: 'animation1',
-    type: 'placeholder',
+    type: 'info',
     title: '',
-    placeholder: 'animation here will be added later 1',
+    info: {
+      icon: 'pulse',
+      headline: 'A little science behind the calm',
+      body: 'Calmutopia is built on EFT tapping — gently tapping on acupressure points while you focus on what feels off.',
+      points: [
+        'Tapping signals safety to your nervous system',
+        'It can lower cortisol, your main stress hormone',
+        'Just a few minutes a day starts to add up',
+      ],
+    },
   },
   {
     key: 'selfAnalysis',
@@ -162,9 +172,18 @@ const STEPS = [
   },
   {
     key: 'animation2',
-    type: 'placeholder',
+    type: 'info',
     title: '',
-    placeholder: 'animation 2 — thank you for trusting us',
+    info: {
+      icon: 'heart',
+      headline: 'Thank you for trusting us',
+      body: 'Opening up about how you feel takes courage. We\'ll use everything you shared to shape sessions that meet you where you are.',
+      points: [
+        'Your answers stay private to you',
+        'Every session adapts as you grow',
+        'You can go at your own pace — always',
+      ],
+    },
   },
   {
     key: 'dailyCheckin',
@@ -360,6 +379,7 @@ export default function QuestionsScreen() {
   const value = answers[step.key] ?? null;
   const isAnswered =
     step.type === 'placeholder' ||
+    step.type === 'info' ||
     step.type === 'testimonials' ||
     step.type === 'notifications' ||
     step.type === 'referral'
@@ -409,6 +429,7 @@ export default function QuestionsScreen() {
     if (!isAnswered) return;
     if (
       step.type !== 'placeholder' &&
+      step.type !== 'info' &&
       step.type !== 'testimonials' &&
       step.type !== 'notifications' &&
       step.type !== 'referral' &&
@@ -533,7 +554,7 @@ export default function QuestionsScreen() {
             { opacity: fade, transform: [{ translateX: translate }] },
           ]}
         >
-          {step.type !== 'placeholder' && (
+          {step.type !== 'placeholder' && step.type !== 'info' && (
             <>
               <Text style={styles.title}>{step.title}</Text>
               {step.subtitle ? (
@@ -547,6 +568,14 @@ export default function QuestionsScreen() {
             <View style={styles.placeholderWrap}>
               <Text style={styles.placeholderText}>{step.placeholder}</Text>
             </View>
+          ) : step.type === 'info' ? (
+            <OnboardingInfo
+              key={step.key}
+              icon={step.info?.icon}
+              headline={step.info?.headline}
+              body={step.info?.body}
+              points={step.info?.points}
+            />
           ) : step.type === 'analysis' ? (
             <View style={styles.analysisWrap}>
               <View style={styles.analysisCharacter}>

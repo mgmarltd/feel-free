@@ -29,7 +29,7 @@ async function createAgent() {
           temperature: 0.75,
         },
         first_message:
-          'Merhaba… Ben Calm. Sana nasıl seslenmemi istersin?',
+          'Merhaba… Ben Calmutopia. Sana nasıl seslenmemi istersin?',
         language: 'tr',
       },
       tts: {
