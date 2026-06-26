@@ -270,4 +270,47 @@ export async function resetQuickSessions() {
   return request<QuickSessionsView>("/api/admin/quick-sessions/reset", { method: "POST" });
 }
 
+export interface HomeworkTopic {
+  key: string;
+  label_en: string;
+  label_tr: string;
+  keywords: string[];
+  practice_en: string;
+  practice_tr: string;
+}
+
+export interface HomeworkConfig {
+  durationMinutes: number;
+  affirmationCount: number;
+  frequency_en: string;
+  frequency_tr: string;
+  titleTemplate_en: string;
+  titleTemplate_tr: string;
+  fallback_en: string[];
+  fallback_tr: string[];
+  topics: HomeworkTopic[];
+}
+
+export interface HomeworkConfigView {
+  config: HomeworkConfig;
+  defaults: HomeworkConfig;
+  isCustomized: boolean;
+  updatedAt: string | null;
+}
+
+export async function fetchHomeworkConfig() {
+  return request<HomeworkConfigView>("/api/admin/homework-config");
+}
+
+export async function saveHomeworkConfig(config: HomeworkConfig) {
+  return request<HomeworkConfigView>("/api/admin/homework-config", {
+    method: "PUT",
+    body: JSON.stringify({ config }),
+  });
+}
+
+export async function resetHomeworkConfig() {
+  return request<HomeworkConfigView>("/api/admin/homework-config/reset", { method: "POST" });
+}
+
 export { API_BASE };

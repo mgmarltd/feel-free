@@ -1,43 +1,17 @@
 const crypto = require('crypto');
 const affirmations = require('./affirmations');
 const userStore = require('./userStore');
+const homeworkConfig = require('./homeworkConfigStore');
 
-// Real-life practice suggestions per common topic. Generic if no match.
-// Each line is one short, concrete action the user can try this week.
-const PRACTICE_BY_TOPIC = {
-  anxiety: 'When you notice anxiety rising, pause, place a hand on your chest, and tap softly through the 7 points while breathing slowly. Even one minute counts.',
-  stress: 'Pick one stressful moment this week (a meeting, a commute, an email). Tap on the side of your hand for 60 seconds before going in.',
-  fear: 'Choose one small thing the fear has been holding back. Do it this week, and notice afterward: "Did I survive that?"',
-  rejection: 'Send one message, request, or boundary that risks being declined. Tap on your chest right after, regardless of the reply.',
-  anger: 'Next time anger rises, walk to a quiet spot, tap on top of your head and breathe out long. Repeat: "I am a calm expression of love."',
-  sadness: 'Each evening, name one small thing that nourished you today — out loud or in a note. Tap once gently on your chest.',
-  shame: 'Speak one kind sentence to the mirror each morning, hand on heart. Then tap softly: "I am worthy of love just as I am."',
-  guilt: 'Write one thing you forgive yourself for. Tap on the chest and read it back. Once a day this week.',
-  sleep: 'Before bed, tap once through all 7 points with: "My body is safe. My mind can rest." Three slow rounds.',
-  confidence: 'Once a day, stand tall, hands on heart, and say: "I am safe to be fully myself." Tap on the chest as you say it.',
-  trauma: 'When a flashback or memory rises, gently tap on the chest while repeating: "That was then. I am safe now." Do not push deeper alone.',
-  default: 'Each morning and evening, tap softly through the 7 points (about 2 minutes) while saying the affirmation aloud. Notice what shifts.',
-};
-
-const TOPIC_KEYWORDS = {
-  anxiety: ['anxiety', 'anxious', 'kaygı', 'kaygi', 'kaygili', 'panik', 'worry', 'worried'],
-  stress: ['stress', 'stresli', 'overwhelm', 'bunalmis', 'baskı', 'pressure'],
-  fear: ['fear', 'korku', 'korkuyorum', 'scared', 'phobia', 'fobi'],
-  rejection: ['rejection', 'reject', 'reddedil', 'reddedilme', 'unloved', 'unwanted'],
-  anger: ['anger', 'angry', 'öfke', 'sinir', 'rage', 'kızgın', 'frustration'],
-  sadness: ['sad', 'sadness', 'üzgün', 'üzüntü', 'grief', 'depression', 'depresyon'],
-  shame: ['shame', 'utanç', 'embarrassed', 'humiliated'],
-  guilt: ['guilt', 'guilty', 'suçluluk', 'suçlu', 'regret', 'pişman'],
-  sleep: ['sleep', 'insomnia', 'uyku', 'uyuyamıyorum', 'tired'],
-  confidence: ['confidence', 'self-doubt', 'özgüven', 'inadequate', 'yetersiz'],
-  trauma: ['trauma', 'travma', 'flashback', 'ptsd', 'çocukluk'],
-};
-
+// Topic detection uses the admin-managed keyword lists. First topic whose
+// keyword appears in the text wins; 'default' if none match.
 function detectTopic(text) {
   if (!text || typeof text !== 'string') return 'default';
   const lower = text.toLowerCase();
-  for (const [topic, words] of Object.entries(TOPIC_KEYWORDS)) {
-    if (words.some((w) => lower.includes(w))) return topic;
+  const { topics } = homeworkConfig.getConfig();
+  for (const t of topics) {
+    if (t.key === 'default') continue;
+    if ((t.keywords || []).some((w) => w && lower.includes(w))) return t.key;
   }
   return 'default';
 }
@@ -52,41 +26,40 @@ function pickFromText(messages) {
 }
 
 // Build a homework JSON from the session's topic + the affirmation library.
-// No LLM needed — deterministic + reliable, can be upgraded to real LLM later.
+// Deterministic + reliable; every knob (practice text, title, duration,
+// frequency, fallback affirmations, how many to pull) comes from the
+// admin-managed homework config.
 function buildHomework({ topic, language = 'tr', userText = '' }) {
   const lang = language === 'en' ? 'en' : 'tr';
+  const cfg = homeworkConfig.getConfig();
   const resolvedTopic = topic && topic !== 'default'
     ? topic
     : detectTopic(userText) || 'default';
 
+  const topicCfg = cfg.topics.find((t) => t.key === resolvedTopic)
+    || cfg.topics.find((t) => t.key === 'default')
+    || {};
+
   const issuesSearch = [resolvedTopic, ...(userText ? [userText.slice(0, 200)] : [])];
-  const matched = affirmations.findByIssues(issuesSearch, { perIssue: 3 }).slice(0, 4);
+  const matched = affirmations.findByIssues(issuesSearch, { perIssue: 3 }).slice(0, cfg.affirmationCount);
 
   const lines = matched
     .map((e) => (lang === 'en' ? e.affirmation_en : e.affirmation_tr))
     .filter(Boolean);
 
-  // Fallback set if no library hits
-  const fallbackLines = lang === 'en'
-    ? [
-        'I love and approve of myself.',
-        'I trust the flow of life. I am safe.',
-        'I am worthy of love, respect and kindness, just as I am.',
-      ]
-    : [
-        'Kendimi seviyorum ve onaylıyorum.',
-        'Hayatın akışına güveniyorum. Güvendeyim.',
-        'Olduğum gibi sevgiye, saygıya ve şefkate layığım.',
-      ];
-
+  // Admin-configured fallback set if the library returns too few hits.
+  const fallbackLines = lang === 'en' ? cfg.fallback_en : cfg.fallback_tr;
   const affs = lines.length >= 2 ? lines : fallbackLines;
 
-  const title = lang === 'en'
-    ? `Daily ${resolvedTopic} release`
-    : `Günlük ${resolvedTopic} bırakma`;
+  const label = (lang === 'en' ? topicCfg.label_en : topicCfg.label_tr) || resolvedTopic;
+  const template = lang === 'en' ? cfg.titleTemplate_en : cfg.titleTemplate_tr;
+  const title = template.replace(/\{topic\}/gi, label);
 
   const tappingScript = affs[0];
-  const realLifeAction = PRACTICE_BY_TOPIC[resolvedTopic] || PRACTICE_BY_TOPIC.default;
+  const defaultCfg = cfg.topics.find((t) => t.key === 'default') || {};
+  const realLifeAction = (lang === 'en' ? topicCfg.practice_en : topicCfg.practice_tr)
+    || (lang === 'en' ? defaultCfg.practice_en : defaultCfg.practice_tr)
+    || '';
 
   return {
     id: 'hw_' + crypto.randomBytes(6).toString('hex'),
@@ -98,8 +71,8 @@ function buildHomework({ topic, language = 'tr', userText = '' }) {
     affirmations: affs,
     tappingScript,
     realLifeAction,
-    durationMinutes: 3,
-    frequency: lang === 'en' ? 'Morning and evening' : 'Sabah ve akşam',
+    durationMinutes: cfg.durationMinutes,
+    frequency: lang === 'en' ? cfg.frequency_en : cfg.frequency_tr,
   };
 }
 

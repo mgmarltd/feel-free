@@ -18,6 +18,7 @@ const affirmations = require('./affirmations');
 const promptStore = require('./promptStore');
 const dailyTaskStore = require('./dailyTaskStore');
 const quickSessionStore = require('./quickSessionStore');
+const homeworkConfigStore = require('./homeworkConfigStore');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -365,6 +366,25 @@ function createAdminRouter() {
   router.post('/quick-sessions/reset', requireAdmin, (req, res) => {
     quickSessionStore.reset();
     res.json(quickSessionStore.getAdminView());
+  });
+
+  // ─── Homework generation config (view + edit) ───────────────────────────
+  router.get('/homework-config', requireAdmin, (req, res) => {
+    res.json(homeworkConfigStore.getAdminView());
+  });
+
+  // Body: { config: { durationMinutes, affirmationCount, frequency_*,
+  //   titleTemplate_*, fallback_*, topics: [...] } } — replaces the whole config.
+  router.put('/homework-config', requireAdmin, (req, res) => {
+    const result = homeworkConfigStore.setConfig(req.body?.config, new Date().toISOString());
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(homeworkConfigStore.getAdminView());
+  });
+
+  // Revert homework config to the built-in defaults.
+  router.post('/homework-config/reset', requireAdmin, (req, res) => {
+    homeworkConfigStore.reset();
+    res.json(homeworkConfigStore.getAdminView());
   });
 
   return router;

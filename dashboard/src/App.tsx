@@ -8,6 +8,7 @@ import Activity from "./pages/Activity";
 import Prompts from "./pages/Prompts";
 import DailyTasks from "./pages/DailyTasks";
 import QuickSessions from "./pages/QuickSessions";
+import Homeworks from "./pages/Homeworks";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/prompts" element={<ProtectedRoute><Prompts /></ProtectedRoute>} />
       <Route path="/daily-tasks" element={<ProtectedRoute><DailyTasks /></ProtectedRoute>} />
       <Route path="/quick-sessions" element={<ProtectedRoute><QuickSessions /></ProtectedRoute>} />
+      <Route path="/homeworks" element={<ProtectedRoute><Homeworks /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>
   );
