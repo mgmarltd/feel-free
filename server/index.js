@@ -20,6 +20,8 @@ const homeworks = require('./homeworks');
 const promptStore = require('./promptStore');
 const dailyTaskStore = require('./dailyTaskStore');
 const quickSessionStore = require('./quickSessionStore');
+const pushStore = require('./pushStore');
+const scheduler = require('./scheduler');
 const { createAdminRouter } = require('./admin');
 
 const app = express();
@@ -356,6 +358,23 @@ app.get('/api/user/:userId', (req, res) => {
   res.json({ profile: profile || {} });
 });
 
+// Public: register/refresh a device's Expo push token. Called by the app on
+// launch once notification permission is granted.
+app.post('/api/push/register', (req, res) => {
+  try {
+    const { token, language, userId, platform } = req.body || {};
+    const result = pushStore.upsert(
+      { token, language, userId, platform },
+      new Date().toISOString(),
+    );
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Push register error:', e.message || e);
+    res.status(500).json({ error: 'Failed to register push token' });
+  }
+});
+
 // Public: the live Daily Tasks list for the app Home screen (enabled only).
 // Completion is tracked locally on-device, keyed by task id.
 app.get('/api/daily-tasks', (req, res) => {
@@ -447,6 +466,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`CALMUTOPIA server running on http://0.0.0.0:${PORT}`);
   console.log(`Tailscale: http://100.111.223.87:${PORT}`);
   init();
+  scheduler.start();
 });
 server.on('error', (err) => {
   console.error('Server error:', err);

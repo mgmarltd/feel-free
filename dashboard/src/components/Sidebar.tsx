@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { IconGrid, IconUsers, IconActivity, IconPrompt, IconCheck, IconSpark, IconBook } from "./icons";
+import { IconGrid, IconUsers, IconActivity, IconPrompt, IconCheck, IconSpark, IconBook, IconBell } from "./icons";
 import type { ComponentType } from "react";
 
 interface Item {
@@ -17,6 +17,7 @@ const items: Item[] = [
   { to: "/quick-sessions", label: "Quick Sessions", Icon: IconSpark },
   { to: "/homeworks", label: "Homeworks", Icon: IconBook },
   { to: "/daily-tasks", label: "Daily Tasks", Icon: IconCheck },
+  { to: "/automation", label: "Automation", Icon: IconBell },
 ];
 
 export function Sidebar({

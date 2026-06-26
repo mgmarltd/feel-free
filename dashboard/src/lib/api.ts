@@ -313,4 +313,81 @@ export async function resetHomeworkConfig() {
   return request<HomeworkConfigView>("/api/admin/homework-config/reset", { method: "POST" });
 }
 
+export interface Automation {
+  id: string;
+  name: string;
+  enabled: boolean;
+  title_en: string;
+  title_tr: string;
+  body_en: string;
+  body_tr: string;
+  time: string; // "HH:MM"
+  days: number[]; // 0=Sun..6=Sat; [] = every day
+  timezone: string;
+  lastSentDate: string | null;
+  lastRunAt: string | null;
+  createdAt: string | null;
+}
+
+export interface PushStats {
+  total: number;
+  byLanguage: Record<string, number>;
+}
+
+export interface SendResult {
+  sent: number;
+  failed: number;
+  removed: number;
+  audience: number;
+}
+
+export type AutomationInput = Pick<
+  Automation,
+  "name" | "enabled" | "title_en" | "title_tr" | "body_en" | "body_tr" | "time" | "days" | "timezone"
+>;
+
+export async function fetchAutomations() {
+  return request<{ automations: Automation[]; push: PushStats }>("/api/admin/automations");
+}
+
+export async function createAutomation(input: AutomationInput) {
+  return request<{ automation: Automation; automations: Automation[] }>("/api/admin/automations", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAutomation(id: string, input: AutomationInput) {
+  return request<{ automation: Automation; automations: Automation[] }>(
+    `/api/admin/automations/${encodeURIComponent(id)}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function deleteAutomation(id: string) {
+  return request<{ success: boolean; automations: Automation[] }>(
+    `/api/admin/automations/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function sendAutomation(id: string) {
+  return request<{ success: boolean; result: SendResult }>(
+    `/api/admin/automations/${encodeURIComponent(id)}/send`,
+    { method: "POST" },
+  );
+}
+
+export async function broadcastPush(input: {
+  title_en?: string;
+  title_tr?: string;
+  body_en?: string;
+  body_tr?: string;
+}) {
+  return request<{ success: boolean; result: SendResult }>("/api/admin/push/broadcast", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export { API_BASE };

@@ -19,6 +19,9 @@ const promptStore = require('./promptStore');
 const dailyTaskStore = require('./dailyTaskStore');
 const quickSessionStore = require('./quickSessionStore');
 const homeworkConfigStore = require('./homeworkConfigStore');
+const automationStore = require('./automationStore');
+const pushStore = require('./pushStore');
+const pushService = require('./pushService');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -385,6 +388,62 @@ function createAdminRouter() {
   router.post('/homework-config/reset', requireAdmin, (req, res) => {
     homeworkConfigStore.reset();
     res.json(homeworkConfigStore.getAdminView());
+  });
+
+  // ─── Automation: notifications ──────────────────────────────────────────
+  // List automations + push-subscriber stats (powers the Automation tab).
+  router.get('/automations', requireAdmin, (req, res) => {
+    res.json({ automations: automationStore.list(), push: pushStore.stats() });
+  });
+
+  router.post('/automations', requireAdmin, (req, res) => {
+    const result = automationStore.create(req.body, new Date().toISOString());
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ automation: result.automation, automations: automationStore.list() });
+  });
+
+  router.put('/automations/:id', requireAdmin, (req, res) => {
+    const result = automationStore.update(req.params.id, req.body, new Date().toISOString());
+    if (result.error) return res.status(result.error === 'Not found' ? 404 : 400).json({ error: result.error });
+    res.json({ automation: result.automation, automations: automationStore.list() });
+  });
+
+  router.delete('/automations/:id', requireAdmin, (req, res) => {
+    const ok = automationStore.remove(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true, automations: automationStore.list() });
+  });
+
+  // Fire an automation immediately (ignores schedule; does not affect its
+  // daily lastSentDate guard).
+  router.post('/automations/:id/send', requireAdmin, async (req, res) => {
+    const a = automationStore.get(req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    try {
+      const result = await pushService.broadcast({
+        title_en: a.title_en, title_tr: a.title_tr,
+        body_en: a.body_en, body_tr: a.body_tr,
+        data: { type: 'automation', id: a.id },
+      });
+      res.json({ success: true, result });
+    } catch (e) {
+      res.status(500).json({ error: e.message || 'Send failed' });
+    }
+  });
+
+  // Ad-hoc broadcast (used for "Send test now" / one-off announcements).
+  // Body: { title_en, title_tr, body_en, body_tr }
+  router.post('/push/broadcast', requireAdmin, async (req, res) => {
+    const { title_en, title_tr, body_en, body_tr } = req.body || {};
+    if (!title_en && !title_tr && !body_en && !body_tr) {
+      return res.status(400).json({ error: 'Provide a title and body' });
+    }
+    try {
+      const result = await pushService.broadcast({ title_en, title_tr, body_en, body_tr, data: { type: 'broadcast' } });
+      res.json({ success: true, result });
+    } catch (e) {
+      res.status(500).json({ error: e.message || 'Send failed' });
+    }
   });
 
   return router;
