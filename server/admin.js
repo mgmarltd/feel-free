@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const express = require('express');
 const userStore = require('./userStore');
 const affirmations = require('./affirmations');
+const promptStore = require('./promptStore');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -296,6 +297,33 @@ function createAdminRouter() {
   router.get('/activity', requireAdmin, (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
     res.json({ activity: buildActivity(userStore.getAll(), limit) });
+  });
+
+  // ─── LLM prompts (view + edit) ──────────────────────────────────────────
+  router.get('/prompts', requireAdmin, (req, res) => {
+    res.json({ prompts: promptStore.getAll() });
+  });
+
+  // Body: { updates: { key: value, ... } }
+  router.put('/prompts', requireAdmin, (req, res) => {
+    const updates = req.body?.updates;
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: 'Expected { updates: { key: value } }' });
+    }
+    const { applied, errors } = promptStore.setMany(updates, new Date().toISOString());
+    if (!applied.length && errors.length) {
+      return res.status(400).json({ error: errors[0].error, errors });
+    }
+    res.json({ applied, errors, prompts: promptStore.getAll() });
+  });
+
+  // Revert one prompt to its built-in default.
+  router.post('/prompts/:key/reset', requireAdmin, (req, res) => {
+    if (!promptStore.isKnown(req.params.key)) {
+      return res.status(404).json({ error: 'Unknown prompt' });
+    }
+    promptStore.reset(req.params.key);
+    res.json({ success: true, prompts: promptStore.getAll() });
   });
 
   return router;

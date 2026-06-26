@@ -1,4 +1,9 @@
 const affirmations = require('./affirmations');
+const promptStore = require('./promptStore');
+
+// New-user opening lines (editable via the admin dashboard).
+const EFT_GREETING_EN = "Hi… I'm Calmutopia. What should I call you?";
+const EFT_GREETING_TR = 'Merhaba… Ben Calmutopia. Sana nasıl seslenmemi istersin?';
 
 const EFT_SYSTEM_PROMPT_EN = `You are "Calmutopia" — a warm, real EFT + NLP guide. You are speaking with the user in CALMUTOPIA, in a LIVE voice call.
 
@@ -322,7 +327,10 @@ function resolveLanguage(userProfile, opts = {}) {
 
 function buildDynamicPrompt(userProfile, opts = {}) {
   const lang = resolveLanguage(userProfile, opts);
-  const systemPrompt = lang === 'en' ? EFT_SYSTEM_PROMPT_EN : EFT_SYSTEM_PROMPT;
+  // Read the effective (possibly admin-edited) system prompt.
+  const systemPrompt = lang === 'en'
+    ? promptStore.get('eft_system_en')
+    : promptStore.get('eft_system_tr');
 
   let contextSection = lang === 'en'
     ? '\n\n# User Info\n'
@@ -383,8 +391,8 @@ function getFirstMessage(userProfile, opts = {}) {
 
   if (!userProfile || !userProfile.name) {
     return lang === 'en'
-      ? "Hi… I'm Calmutopia. What should I call you?"
-      : 'Merhaba… Ben Calmutopia. Sana nasıl seslenmemi istersin?';
+      ? promptStore.get('eft_greeting_en')
+      : promptStore.get('eft_greeting_tr');
   }
 
   const name = userProfile.name;
@@ -404,6 +412,8 @@ function getFirstMessage(userProfile, opts = {}) {
 module.exports = {
   EFT_SYSTEM_PROMPT,
   EFT_SYSTEM_PROMPT_EN,
+  EFT_GREETING_EN,
+  EFT_GREETING_TR,
   buildDynamicPrompt,
   getFirstMessage,
   collectMatchingAffirmations,

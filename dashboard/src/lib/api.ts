@@ -168,4 +168,34 @@ export async function fetchActivity(limit = 50) {
   return request<{ activity: ActivityEvent[] }>(`/api/admin/activity?limit=${limit}`);
 }
 
+export interface Prompt {
+  key: string;
+  label: string;
+  description: string;
+  lang: "en" | "tr" | "both";
+  group: string;
+  value: string;
+  default: string;
+  isOverridden: boolean;
+  updatedAt: string | null;
+}
+
+export async function fetchPrompts() {
+  return request<{ prompts: Prompt[] }>("/api/admin/prompts");
+}
+
+export async function savePrompts(updates: Record<string, string>) {
+  return request<{ applied: string[]; errors: { key: string; error: string }[]; prompts: Prompt[] }>(
+    "/api/admin/prompts",
+    { method: "PUT", body: JSON.stringify({ updates }) },
+  );
+}
+
+export async function resetPrompt(key: string) {
+  return request<{ success: boolean; prompts: Prompt[] }>(
+    `/api/admin/prompts/${encodeURIComponent(key)}/reset`,
+    { method: "POST" },
+  );
+}
+
 export { API_BASE };

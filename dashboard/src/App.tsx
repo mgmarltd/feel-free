@@ -5,6 +5,7 @@ import Overview from "./pages/Overview";
 import Users from "./pages/Users";
 import UserDetail from "./pages/UserDetail";
 import Activity from "./pages/Activity";
+import Prompts from "./pages/Prompts";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
       <Route path="/users/:userId" element={<ProtectedRoute><UserDetail /></ProtectedRoute>} />
       <Route path="/activity" element={<ProtectedRoute><Activity /></ProtectedRoute>} />
+      <Route path="/prompts" element={<ProtectedRoute><Prompts /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/overview" replace />} />
     </Routes>
   );

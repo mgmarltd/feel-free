@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { IconGrid, IconUsers, IconActivity } from "./icons";
+import { IconGrid, IconUsers, IconActivity, IconPrompt } from "./icons";
 import type { ComponentType } from "react";
 
 interface Item {
@@ -13,6 +13,7 @@ const items: Item[] = [
   { to: "/overview", label: "Overview", Icon: IconGrid },
   { to: "/users", label: "Users", Icon: IconUsers },
   { to: "/activity", label: "Activity", Icon: IconActivity },
+  { to: "/prompts", label: "Prompts", Icon: IconPrompt },
 ];
 
 export function Sidebar({

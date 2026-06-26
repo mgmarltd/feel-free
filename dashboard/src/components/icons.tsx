@@ -127,6 +127,26 @@ export function IconMenu({ className }: P) {
   );
 }
 
+export function IconPrompt({ className }: P) {
+  return (
+    <svg {...base(className)}>
+      <path d="M4 17l6-6-6-6" />
+      <path d="M12 19h8" />
+    </svg>
+  );
+}
+
+export function IconRefresh({ className }: P) {
+  return (
+    <svg {...base(className)}>
+      <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  );
+}
+
 export function IconClock({ className }: P) {
   return (
     <svg {...base(className)}>

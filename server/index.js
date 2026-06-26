@@ -17,6 +17,7 @@ const { buildDynamicPrompt, getFirstMessage, resolveLanguage } = require('./eftP
 const affirmations = require('./affirmations');
 const userStore = require('./userStore');
 const homeworks = require('./homeworks');
+const promptStore = require('./promptStore');
 const { createAdminRouter } = require('./admin');
 
 const app = express();
@@ -148,8 +149,10 @@ app.post('/api/analysis/start', async (req, res) => {
       await updateAgent(analysisAgentId, {
         conversation_config: {
           agent: {
-            prompt: { prompt: ANALYSIS_PROMPT, llm: 'gpt-4o', temperature: 0.75 },
-            first_message: language === 'tr' ? ANALYSIS_FIRST_MESSAGE_TR : ANALYSIS_FIRST_MESSAGE_EN,
+            prompt: { prompt: promptStore.get('analysis_prompt'), llm: 'gpt-4o', temperature: 0.75 },
+            first_message: language === 'tr'
+              ? promptStore.get('analysis_first_tr')
+              : promptStore.get('analysis_first_en'),
             language,
           },
           tts: {

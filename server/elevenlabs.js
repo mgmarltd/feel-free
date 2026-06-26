@@ -1,4 +1,5 @@
 const { EFT_SYSTEM_PROMPT } = require('./eftPrompt');
+const promptStore = require('./promptStore');
 
 const API_BASE = 'https://api.elevenlabs.io/v1';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
@@ -170,8 +171,10 @@ async function createAnalysisAgent(language = 'en') {
     name: ANALYSIS_AGENT_NAME,
     conversation_config: {
       agent: {
-        prompt: { prompt: ANALYSIS_PROMPT, llm: 'gpt-4o', temperature: 0.75 },
-        first_message: isTurkish ? ANALYSIS_FIRST_MESSAGE_TR : ANALYSIS_FIRST_MESSAGE_EN,
+        prompt: { prompt: promptStore.get('analysis_prompt'), llm: 'gpt-4o', temperature: 0.75 },
+        first_message: isTurkish
+          ? promptStore.get('analysis_first_tr')
+          : promptStore.get('analysis_first_en'),
         language,
       },
       tts: {
