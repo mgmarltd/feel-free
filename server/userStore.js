@@ -60,6 +60,11 @@ function getUser(userId) {
   return all[userId] || null;
 }
 
+// Return every stored profile keyed by userId. Used by the admin dashboard.
+function getAll() {
+  return loadAll();
+}
+
 function saveUser(userId, profile) {
   const clean = sanitizeProfile(profile);
   const all = loadAll();
@@ -88,4 +93,4 @@ function updateUser(userId, updates) {
   return all[userId];
 }
 
-module.exports = { getUser, saveUser, updateUser };
+module.exports = { getUser, getAll, saveUser, updateUser };

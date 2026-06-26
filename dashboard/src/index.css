@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: #f6f7f9;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+@layer components {
+  /* Surfaces */
+  .card {
+    @apply rounded-2xl border border-line bg-white shadow-card;
+  }
+  .card-pad {
+    @apply card p-5;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+  }
+  .btn-outline {
+    @apply btn border border-line bg-white text-gray-700 hover:bg-gray-50;
+  }
+  .btn-soft {
+    @apply btn bg-brand-50 text-brand-700 hover:bg-brand-100;
+  }
+  .btn-danger {
+    @apply btn border border-line bg-white text-red-600 hover:bg-red-50;
+  }
+
+  /* Form */
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-50;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium text-gray-500;
+  }
+
+  /* Navigation */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900;
+  }
+  .nav-item-active {
+    @apply bg-brand-50 text-brand-700 hover:bg-brand-50 hover:text-brand-700;
+  }
+
+  /* Utility chips */
+  .icon-chip {
+    @apply grid h-9 w-9 place-items-center rounded-xl border border-line bg-gray-50 text-gray-500;
+  }
+  .ghost-icon {
+    @apply grid h-9 w-9 place-items-center rounded-xl border border-line bg-white text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-700;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+  .dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+}

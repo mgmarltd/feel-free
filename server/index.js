@@ -17,10 +17,14 @@ const { buildDynamicPrompt, getFirstMessage, resolveLanguage } = require('./eftP
 const affirmations = require('./affirmations');
 const userStore = require('./userStore');
 const homeworks = require('./homeworks');
+const { createAdminRouter } = require('./admin');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Admin dashboard API (auth + read-only aggregation)
+app.use('/api/admin', createAdminRouter());
 
 let agentId = null;
 let analysisAgentId = null;
