@@ -17,6 +17,7 @@ const userStore = require('./userStore');
 const affirmations = require('./affirmations');
 const promptStore = require('./promptStore');
 const dailyTaskStore = require('./dailyTaskStore');
+const quickSessionStore = require('./quickSessionStore');
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@calmutopia.app').trim().toLowerCase();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'calmutopia-admin';
@@ -344,6 +345,26 @@ function createAdminRouter() {
   router.post('/daily-tasks/reset', requireAdmin, (req, res) => {
     dailyTaskStore.reset();
     res.json(dailyTaskStore.getAdminView());
+  });
+
+  // ─── Quick sessions / modes (view + edit) ───────────────────────────────
+  router.get('/quick-sessions', requireAdmin, (req, res) => {
+    res.json(quickSessionStore.getAdminView());
+  });
+
+  // Body: { modes: [{ id?, emoji, color, duration, featured, enabled,
+  //   label_en, label_tr, description_*, focus_*, instructions_*,
+  //   firstMessage_*, issues }] } — replaces the whole list.
+  router.put('/quick-sessions', requireAdmin, (req, res) => {
+    const result = quickSessionStore.setModes(req.body?.modes, new Date().toISOString());
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json(quickSessionStore.getAdminView());
+  });
+
+  // Revert the quick-session list to the built-in defaults.
+  router.post('/quick-sessions/reset', requireAdmin, (req, res) => {
+    quickSessionStore.reset();
+    res.json(quickSessionStore.getAdminView());
   });
 
   return router;

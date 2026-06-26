@@ -10,31 +10,31 @@ import { COLORS, FONTS } from '../src/constants/theme';
 import { useOnboarding } from '../src/context/OnboardingContext';
 import { getLanguage, setLanguage } from '../src/services/userProfile';
 import { getDailyTasks, toggleDailyTask } from '../src/services/dailyTasks';
-
-// `key` must match a slug in server/eftPrompt.js QUICK_SESSION_TOPICS so the
-// session opens with the right focused prompt.
-const quickSessions = [
-  { key: 'stress-relief', title: 'Stress Relief', duration: '5 min', emoji: '🧘', color: 'rgba(139,92,246,0.2)' },
-  { key: 'anxiety-calm', title: 'Anxiety Calm', duration: '7 min', emoji: '🌊', color: 'rgba(59,130,246,0.2)' },
-  { key: 'morning-energy', title: 'Morning Energy', duration: '5 min', emoji: '☀️', color: 'rgba(245,158,11,0.2)' },
-  { key: 'better-sleep', title: 'Better Sleep', duration: '10 min', emoji: '🌙', color: 'rgba(99,102,241,0.2)' },
-];
+import { getQuickSessions } from '../src/services/quickSessions';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { data } = useOnboarding();
   const [lang, setLang] = useState('tr');
   const [tasks, setTasks] = useState([]);
+  const [featured, setFeatured] = useState([]);
+  const [quick, setQuick] = useState([]);
 
   useEffect(() => {
     getLanguage().then(setLang).catch(() => {});
   }, []);
 
-  // Reload tasks on focus (also handles the midnight reset) and on language
-  // change — the localized titles depend on `lang`.
+  // Reload daily tasks + quick sessions on focus (also handles the daily-task
+  // midnight reset) and on language change — localized titles depend on `lang`.
   useFocusEffect(
     useCallback(() => {
       getDailyTasks(lang).then(setTasks).catch(() => {});
+      getQuickSessions(lang)
+        .then(({ featured, quick }) => {
+          setFeatured(featured);
+          setQuick(quick);
+        })
+        .catch(() => {});
     }, [lang])
   );
 
@@ -101,40 +101,52 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Featured Session */}
-          <TouchableOpacity activeOpacity={0.85} onPress={() => startSession('release')}>
-            <LinearGradient
-              colors={['rgba(139,92,246,0.35)', 'rgba(139,92,246,0.1)']}
-              style={styles.featured}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Text style={styles.featuredLabel}>TODAY'S SESSION</Text>
-              <Text style={styles.featuredTitle}>Release & Let Go</Text>
-              <Text style={styles.featuredDesc}>
-                A guided tapping session to release what's weighing you down
-              </Text>
-              <View style={styles.featuredButton}>
-                <Text style={styles.featuredButtonText}>Start Session  &#9654;</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+          {/* Featured Session(s) */}
+          {featured.map((session) => (
+            <TouchableOpacity key={session.id} activeOpacity={0.85} onPress={() => startSession(session.id)}>
+              <LinearGradient
+                colors={['rgba(139,92,246,0.35)', 'rgba(139,92,246,0.1)']}
+                style={styles.featured}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.featuredLabel}>
+                  {lang === 'en' ? "TODAY'S SESSION" : 'BUGÜNÜN SEANSI'}
+                </Text>
+                <Text style={styles.featuredTitle}>{session.title}</Text>
+                {!!session.description && (
+                  <Text style={styles.featuredDesc}>{session.description}</Text>
+                )}
+                <View style={styles.featuredButton}>
+                  <Text style={styles.featuredButtonText}>
+                    {lang === 'en' ? 'Start Session' : 'Seansa Başla'}  &#9654;
+                  </Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))}
 
           {/* Quick Sessions */}
-          <Text style={styles.sectionTitle}>Quick Sessions</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickRow}
-          >
-            {quickSessions.map((session, i) => (
-              <TouchableOpacity key={i} activeOpacity={0.8} onPress={() => startSession(session.key)} style={[styles.quickCard, { backgroundColor: session.color }]}>
-                <Text style={styles.quickEmoji}>{session.emoji}</Text>
-                <Text style={styles.quickTitle}>{session.title}</Text>
-                <Text style={styles.quickDuration}>{session.duration}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {quick.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>
+                {lang === 'en' ? 'Quick Sessions' : 'Hızlı Seanslar'}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.quickRow}
+              >
+                {quick.map((session) => (
+                  <TouchableOpacity key={session.id} activeOpacity={0.8} onPress={() => startSession(session.id)} style={[styles.quickCard, { backgroundColor: session.color }]}>
+                    <Text style={styles.quickEmoji}>{session.emoji}</Text>
+                    <Text style={styles.quickTitle}>{session.title}</Text>
+                    <Text style={styles.quickDuration}>{session.duration}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
+          )}
 
           {/* Daily Tasks */}
           <View style={styles.tasksHeader}>

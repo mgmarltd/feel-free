@@ -228,4 +228,46 @@ export async function resetDailyTasks() {
   return request<DailyTasksView>("/api/admin/daily-tasks/reset", { method: "POST" });
 }
 
+export interface QuickSessionMode {
+  id: string;
+  emoji: string;
+  color: string;
+  duration: string;
+  featured: boolean;
+  enabled: boolean;
+  label_en: string;
+  label_tr: string;
+  description_en: string;
+  description_tr: string;
+  focus_en: string;
+  focus_tr: string;
+  instructions_en: string;
+  instructions_tr: string;
+  firstMessage_en: string;
+  firstMessage_tr: string;
+  issues: string[];
+}
+
+export interface QuickSessionsView {
+  modes: QuickSessionMode[];
+  defaults: QuickSessionMode[];
+  isCustomized: boolean;
+  updatedAt: string | null;
+}
+
+export async function fetchQuickSessions() {
+  return request<QuickSessionsView>("/api/admin/quick-sessions");
+}
+
+export async function saveQuickSessions(modes: QuickSessionMode[]) {
+  return request<QuickSessionsView>("/api/admin/quick-sessions", {
+    method: "PUT",
+    body: JSON.stringify({ modes }),
+  });
+}
+
+export async function resetQuickSessions() {
+  return request<QuickSessionsView>("/api/admin/quick-sessions/reset", { method: "POST" });
+}
+
 export { API_BASE };

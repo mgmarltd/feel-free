@@ -19,6 +19,7 @@ const userStore = require('./userStore');
 const homeworks = require('./homeworks');
 const promptStore = require('./promptStore');
 const dailyTaskStore = require('./dailyTaskStore');
+const quickSessionStore = require('./quickSessionStore');
 const { createAdminRouter } = require('./admin');
 
 const app = express();
@@ -363,6 +364,29 @@ app.get('/api/daily-tasks', (req, res) => {
   } catch (e) {
     console.error('Daily tasks error:', e.message || e);
     res.status(500).json({ error: 'Failed to load daily tasks' });
+  }
+});
+
+// Public: the live Quick Sessions for the app Home screen (enabled only).
+// Only display fields are exposed — prompt internals (focus/instructions/etc.)
+// stay server-side and are applied at /api/session/start by sessionType.
+app.get('/api/quick-sessions', (req, res) => {
+  try {
+    const modes = quickSessionStore.getModes().map((m) => ({
+      id: m.id,
+      emoji: m.emoji,
+      color: m.color,
+      duration: m.duration,
+      featured: m.featured,
+      label_en: m.label_en,
+      label_tr: m.label_tr,
+      description_en: m.description_en,
+      description_tr: m.description_tr,
+    }));
+    res.json({ modes });
+  } catch (e) {
+    console.error('Quick sessions error:', e.message || e);
+    res.status(500).json({ error: 'Failed to load quick sessions' });
   }
 });
 

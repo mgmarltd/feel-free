@@ -1,5 +1,6 @@
 const affirmations = require('./affirmations');
 const promptStore = require('./promptStore');
+const quickSessionStore = require('./quickSessionStore');
 
 // New-user opening lines (editable via the admin dashboard).
 const EFT_GREETING_EN = "Hi… I'm Calmutopia. What should I call you?";
@@ -327,85 +328,52 @@ function resolveLanguage(userProfile, opts = {}) {
 }
 
 // ─── Quick Sessions ────────────────────────────────────────────────────────
-// Presets behind the Home-screen "Quick Session" cards (and the featured
-// "Release & Let Go"). Each slug maps to a focused tapping theme: a spoken
-// label, a one-line focus the agent opens on, and issue keywords used to
-// pre-seed matching affirmations so the session is targeted from turn one —
-// no "what's up today?" round needed. Keep keys in sync with app/home.js.
-const QUICK_SESSION_TOPICS = {
-  release: {
-    label_en: 'Release & Let Go',
-    label_tr: 'Bırak ve Salıver',
-    focus_en: 'releasing whatever feels heavy right now and letting it flow out of the body',
-    focus_tr: 'şu an ağır gelen ne varsa onu bırakmak ve bedenden akıp gitmesine izin vermek',
-    issues: ['stress', 'overwhelm', 'sadness', 'kaygı', 'stres'],
-  },
-  'stress-relief': {
-    label_en: 'Stress Relief',
-    label_tr: 'Stres Rahatlama',
-    focus_en: 'easing the built-up stress and pressure sitting in the body',
-    focus_tr: 'bedende biriken stresi ve baskıyı hafifletmek',
-    issues: ['stress', 'overwhelm', 'pressure', 'stres', 'baskı'],
-  },
-  'anxiety-calm': {
-    label_en: 'Anxiety Calm',
-    label_tr: 'Kaygıyı Yatıştır',
-    focus_en: 'calming anxious, racing energy and coming back to a sense of safety',
-    focus_tr: 'kaygılı, hızlanan enerjiyi yatıştırmak ve güven hissine geri dönmek',
-    issues: ['anxiety', 'worry', 'panic', 'kaygı', 'panik'],
-  },
-  'morning-energy': {
-    label_en: 'Morning Energy',
-    label_tr: 'Sabah Enerjisi',
-    focus_en: 'clearing morning heaviness and inviting fresh, motivated energy for the day',
-    focus_tr: 'sabah ağırlığını dağıtmak ve güne taze, motive bir enerji davet etmek',
-    issues: ['motivation', 'tired', 'sadness', 'isteksizlik', 'yorgun'],
-  },
-  'better-sleep': {
-    label_en: 'Better Sleep',
-    label_tr: 'Daha İyi Uyku',
-    focus_en: 'releasing the tension that keeps the mind awake so the body can rest',
-    focus_tr: 'zihni uyanık tutan gerginliği bırakıp bedenin dinlenmesine izin vermek',
-    issues: ['sleep', 'insomnia', 'tired', 'uyku', 'gerginlik'],
-  },
-};
-
+// The focused tapping themes behind the Home-screen featured card + quick row.
+// Modes (label, focus, per-mode prompt instructions, opening line, affirmation
+// keywords) are admin-managed in quickSessionStore. resolveQuickTopic looks one
+// up by the slug the app sends as sessionType.
 function resolveQuickTopic(sessionType) {
-  if (!sessionType) return null;
-  return QUICK_SESSION_TOPICS[String(sessionType).toLowerCase()] || null;
+  return quickSessionStore.resolveMode(sessionType);
 }
 
 // Build the focused-mode instruction block injected when a quick session is
 // active. Tells the agent the topic is pre-chosen, honors the SUD the user
-// already gave on the feeling screen, and keeps the round short.
+// already gave on the feeling screen, keeps the round short, and appends any
+// admin-authored per-mode instructions.
 function buildQuickSessionBlock({ topic, feelingIntensity, lang }) {
   if (!topic) return '';
-  const label = lang === 'en' ? topic.label_en : topic.label_tr;
-  const focus = lang === 'en' ? topic.focus_en : topic.focus_tr;
+  const label = (lang === 'en' ? topic.label_en : topic.label_tr) || topic.label_en || topic.label_tr;
+  const focus = (lang === 'en' ? topic.focus_en : topic.focus_tr) || topic.focus_en || topic.focus_tr;
+  const extra = (lang === 'en' ? topic.instructions_en : topic.instructions_tr) || '';
   const sud = Number(feelingIntensity);
   const hasSud = Number.isFinite(sud) && sud > 0;
 
-  if (lang === 'en') {
-    return [
-      '',
-      '# Quick Session (focused mode)',
-      `The user tapped the "${label}" quick session, so the topic is ALREADY chosen — do NOT ask "what's up today?". Open straight on this focus: ${focus}.`,
-      hasSud
-        ? `They already rated their starting intensity at ${sud} out of ten on the previous screen — acknowledge it briefly ("you said around ${sud} out of ten…") and do NOT ask for the starting SUD again. Go straight to locating the energy in the body.`
-        : 'Take one quick SUD reading, then move on.',
-      'Keep it SHORT and focused: greet in one line, locate the energy, run ONE tapping round on this theme, re-measure, and close — aim for roughly five minutes. Only branch into the NLP combo if the SUD genuinely stays high.',
-    ].join('\n');
+  const lines = lang === 'en'
+    ? [
+        '',
+        '# Quick Session (focused mode)',
+        `The user tapped the "${label}" quick session, so the topic is ALREADY chosen — do NOT ask "what's up today?". Open straight on this focus: ${focus}.`,
+        hasSud
+          ? `They already rated their starting intensity at ${sud} out of ten on the previous screen — acknowledge it briefly ("you said around ${sud} out of ten…") and do NOT ask for the starting SUD again. Go straight to locating the energy in the body.`
+          : 'Take one quick SUD reading, then move on.',
+        'Keep it SHORT and focused: greet in one line, locate the energy, run ONE tapping round on this theme, re-measure, and close — aim for roughly five minutes. Only branch into the NLP combo if the SUD genuinely stays high.',
+      ]
+    : [
+        '',
+        '# Hızlı Seans (odaklı mod)',
+        `Kullanıcı "${label}" hızlı seansına dokundu, yani konu ZATEN belli — "bugün ne var?" diye SORMA. Doğrudan şu odakla başla: ${focus}.`,
+        hasSud
+          ? `Başlangıç şiddetini önceki ekranda zaten on üzerinden ${sud} olarak işaretledi — kısaca onayla ("on üzerinden ${sud} civarı demiştin…") ve başlangıç SUD'unu TEKRAR sorma. Doğrudan enerjiyi bedende bulmaya geç.`
+          : 'Tek bir hızlı SUD ölçümü al, sonra ilerle.',
+        'KISA ve odaklı tut: tek cümleyle selamla, enerjiyi bul, bu tema üzerine TEK bir tapping turu yap, tekrar ölç ve kapat — yaklaşık beş dakika hedefle. SUD gerçekten yüksek kalırsa NLP kombosuna dal.',
+      ];
+
+  if (extra && extra.trim()) {
+    lines.push('');
+    lines.push(lang === 'en' ? `Extra guidance for this session: ${extra.trim()}` : `Bu seans için ek yönerge: ${extra.trim()}`);
   }
 
-  return [
-    '',
-    '# Hızlı Seans (odaklı mod)',
-    `Kullanıcı "${label}" hızlı seansına dokundu, yani konu ZATEN belli — "bugün ne var?" diye SORMA. Doğrudan şu odakla başla: ${focus}.`,
-    hasSud
-      ? `Başlangıç şiddetini önceki ekranda zaten on üzerinden ${sud} olarak işaretledi — kısaca onayla ("on üzerinden ${sud} civarı demiştin…") ve başlangıç SUD'unu TEKRAR sorma. Doğrudan enerjiyi bedende bulmaya geç.`
-      : 'Tek bir hızlı SUD ölçümü al, sonra ilerle.',
-    'KISA ve odaklı tut: tek cümleyle selamla, enerjiyi bul, bu tema üzerine TEK bir tapping turu yap, tekrar ölç ve kapat — yaklaşık beş dakika hedefle. SUD gerçekten yüksek kalırsa NLP kombosuna dal.',
-  ].join('\n');
+  return lines.join('\n');
 }
 
 function buildDynamicPrompt(userProfile, opts = {}) {
@@ -492,9 +460,14 @@ function getFirstMessage(userProfile, opts = {}) {
   const sessionCount = userProfile.sessionCount || 0;
 
   // Quick session → greet by naming the chosen theme, skip "what's up today?".
+  // An admin can override the opening line per mode; {name} is interpolated.
   const quickTopic = resolveQuickTopic(opts.sessionType ?? userProfile?.sessionType);
   if (quickTopic) {
-    const label = lang === 'en' ? quickTopic.label_en : quickTopic.label_tr;
+    const override = (lang === 'en' ? quickTopic.firstMessage_en : quickTopic.firstMessage_tr) || '';
+    if (override && override.trim()) {
+      return override.replace(/\{name\}/gi, name).trim();
+    }
+    const label = (lang === 'en' ? quickTopic.label_en : quickTopic.label_tr) || quickTopic.label_en || quickTopic.label_tr;
     return lang === 'en'
       ? `${name}… let's do a quick "${label}" session. Take a breath — where do you feel it most right now?`
       : `${name}… hadi kısa bir "${label}" seansı yapalım. Bir nefes al — şu an bunu en çok nerede hissediyorsun?`;
@@ -521,5 +494,4 @@ module.exports = {
   collectMatchingAffirmations,
   resolveLanguage,
   resolveQuickTopic,
-  QUICK_SESSION_TOPICS,
 };

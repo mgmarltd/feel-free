@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { IconGrid, IconUsers, IconActivity, IconPrompt, IconCheck } from "./icons";
+import { IconGrid, IconUsers, IconActivity, IconPrompt, IconCheck, IconSpark } from "./icons";
 import type { ComponentType } from "react";
 
 interface Item {
@@ -14,6 +14,7 @@ const items: Item[] = [
   { to: "/users", label: "Users", Icon: IconUsers },
   { to: "/activity", label: "Activity", Icon: IconActivity },
   { to: "/prompts", label: "Prompts", Icon: IconPrompt },
+  { to: "/quick-sessions", label: "Quick Sessions", Icon: IconSpark },
   { to: "/daily-tasks", label: "Daily Tasks", Icon: IconCheck },
 ];
 
