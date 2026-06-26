@@ -27,14 +27,14 @@ import {
 } from '../src/services/userProfile';
 import { COLORS } from '../src/constants/theme';
 
-const PRIVACY_URL = 'https://feelfree.app/privacy';
-const CONTACT_EMAIL = 'hello@feelfree.app';
+const PRIVACY_URL = 'https://calmutopia.app/privacy';
+const CONTACT_EMAIL = 'hello@calmutopia.app';
 
 const LANGUAGE_LABELS = { tr: 'Türkçe', en: 'English' };
 
 const GENDER_LABELS = { Male: 'Male', Female: 'Female', Other: 'Other' };
 
-function getInitials(name, email, fallback = 'FF') {
+function getInitials(name, email, fallback = 'CT') {
   const source = name || (email ? email.split('@')[0] : '');
   if (!source) return fallback;
   const parts = String(source).trim().split(/[\s._-]+/).filter(Boolean);
@@ -52,13 +52,13 @@ function handleFromEmail(email) {
 // Deterministic 4-hex referral code derived from the user identity. Stable
 // per-user without needing a server-assigned code yet.
 function deriveReferralCode(email, name) {
-  const seed = (email || name || 'feelfree').toLowerCase();
+  const seed = (email || name || 'calmutopia').toLowerCase();
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
     h = ((h << 5) - h + seed.charCodeAt(i)) | 0;
   }
   const hex = (Math.abs(h) % 0x10000).toString(16).toUpperCase().padStart(4, '0');
-  return `FF-${hex}`;
+  return `CT-${hex}`;
 }
 
 function formatDob(dob) {
@@ -112,7 +112,7 @@ export default function ProfileScreen() {
   // ─── Derived data ─────────────────────────────────────────────────────
   const name = profile.name || null;
   const email = profile.email || null;
-  const displayName = name || (email ? email.split('@')[0] : 'Welcome to Feel Free');
+  const displayName = name || (email ? email.split('@')[0] : 'Welcome to Calmutopia');
   const initials = getInitials(name, email);
   const handle = email ? handleFromEmail(email) : '@new_user';
   const referralCode = deriveReferralCode(email, name);
@@ -168,14 +168,14 @@ export default function ProfileScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
       await Share.share({
-        message: `Try Feel Free — guided EFT tapping for stress & anxiety. Use my code ${referralCode} when you sign up to get a free month. https://feelfree.app/i/${referralCode}`,
+        message: `Try Calmutopia — guided EFT tapping for stress & anxiety. Use my code ${referralCode} when you sign up to get a free month. https://calmutopia.app/i/${referralCode}`,
       });
     } catch (e) {}
   };
 
   const handleContact = () => {
     tap();
-    Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Feel%20Free%20support`).catch(() =>
+    Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Calmutopia%20support`).catch(() =>
       Alert.alert('No mail app', `Email us at ${CONTACT_EMAIL}`),
     );
   };
@@ -190,7 +190,7 @@ export default function ProfileScreen() {
     if (notifGranted) {
       Alert.alert(
         'Daily check-in',
-        'Notifications are on. To turn them off, open iOS Settings → Feel Free → Notifications.',
+        'Notifications are on. To turn them off, open iOS Settings → Calmutopia → Notifications.',
         [
           { text: 'Close', style: 'cancel' },
           { text: 'Open Settings', onPress: () => Linking.openSettings() },
@@ -203,7 +203,7 @@ export default function ProfileScreen() {
     if (status !== 'granted') {
       Alert.alert(
         'Notifications blocked',
-        'Enable them in iOS Settings → Feel Free → Notifications.',
+        'Enable them in iOS Settings → Calmutopia → Notifications.',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Open Settings', onPress: () => Linking.openSettings() },
@@ -265,14 +265,14 @@ export default function ProfileScreen() {
 
   const handleHelp = () => {
     tap();
-    Linking.openURL('https://feelfree.app/help').catch(() => {});
+    Linking.openURL('https://calmutopia.app/help').catch(() => {});
   };
 
   const handleSignOut = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert(
       'Sign out',
-      'Sign out of Feel Free? Your progress is saved on this device.',
+      'Sign out of Calmutopia? Your progress is saved on this device.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -372,7 +372,7 @@ export default function ProfileScreen() {
             <Row icon="log-out-outline" label="Sign out" onPress={handleSignOut} danger />
           </View>
 
-          <Text style={styles.versionText}>Feel Free v1.0.0</Text>
+          <Text style={styles.versionText}>Calmutopia v1.0.0</Text>
           <View style={{ height: DOCK_HEIGHT + 30 }} />
         </ScrollView>
       </SafeAreaView>

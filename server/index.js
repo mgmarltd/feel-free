@@ -43,7 +43,7 @@ function newCode() {
 async function sendCodeEmail(email, code) {
   // If RESEND_API_KEY is set, actually send the email. Otherwise just log.
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM || 'Feel Free <onboarding@resend.dev>';
+  const from = process.env.RESEND_FROM || 'Calmutopia <onboarding@resend.dev>';
   if (!apiKey) {
     console.log(`[auth] (dev) verification code for ${email}: ${code}`);
     return;
@@ -57,9 +57,9 @@ async function sendCodeEmail(email, code) {
     body: JSON.stringify({
       from,
       to: [email],
-      subject: 'Your Feel Free verification code',
+      subject: 'Your Calmutopia verification code',
       text: `Your code is ${code}. It expires in 10 minutes.`,
-      html: `<p>Your Feel Free verification code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p><p>It expires in 10 minutes.</p>`,
+      html: `<p>Your Calmutopia verification code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px">${code}</p><p>It expires in 10 minutes.</p>`,
     }),
   });
   if (!res.ok) {
@@ -392,7 +392,7 @@ async function init() {
 const PORT = process.env.PORT || 3001;
 const server = http.createServer(app);
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`FEEL FREE server running on http://0.0.0.0:${PORT}`);
+  console.log(`CALMUTOPIA server running on http://0.0.0.0:${PORT}`);
   console.log(`Tailscale: http://100.111.223.87:${PORT}`);
   init();
 });

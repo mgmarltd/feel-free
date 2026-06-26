@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "FEEL-FREE",
-    "slug": "FEEL-FREE",
+    "name": "Calmutopia",
+    "slug": "calmutopia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "scheme": "feel-free",
+    "scheme": "calmutopia",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

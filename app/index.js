@@ -67,7 +67,7 @@ export default function SplashScreen() {
         <Character size={180} mood="happy" />
       </Animated.View>
       <Animated.View style={{ opacity: titleFade, marginTop: 30 }}>
-        <Text style={styles.title}>FEEL FREE</Text>
+        <Text style={styles.title}>CALMUTOPIA</Text>
         <Text style={styles.subtitle}>Your EFT Tapping Companion</Text>
       </Animated.View>
     </LinearGradient>

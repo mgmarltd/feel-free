@@ -30,8 +30,8 @@ import { COLORS } from '../constants/theme';
 const DRAWER_HEIGHT = Dimensions.get('window').height * 0.85;
 
 const CLOSING_PHRASES = [
-  'optimizing your feel free system',
-  'feel free sistemini şimdi senin için optimize',
+  'optimizing your calmutopia system',
+  'calmutopia sistemini şimdi senin için optimize',
 ];
 
 const INITIAL_BUFFER_CHUNKS = 3;

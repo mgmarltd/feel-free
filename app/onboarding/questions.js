@@ -93,7 +93,7 @@ const STEPS = [
   {
     key: 'optimizing',
     type: 'optimizing',
-    title: 'Setting up your Feel Free system',
+    title: 'Setting up your Calmutopia system',
     subtitle: 'Hang tight — tuning a few things to you.',
     // '__AI_TOPIC__' is the dynamic 2–3 word topic the agent named for the user.
     // buildOptimizingSteps replaces it at render time.
@@ -169,7 +169,7 @@ const STEPS = [
   {
     key: 'dailyCheckin',
     type: 'yesno',
-    title: 'Do you want Feel Free to check in on you daily?',
+    title: 'Do you want Calmutopia to check in on you daily?',
   },
   {
     key: 'wantsDailyRelief',
@@ -183,13 +183,13 @@ const STEPS = [
     stats: {
       rating: '4.8',
       ratingsCount: '250K+ App Ratings',
-      usersCount: '500K+ Feel Free Users',
+      usersCount: '500K+ Calmutopia Users',
     },
     reviews: [
       {
         name: 'Emre',
         date: 'April 4, 2026',
-        text: "Feel Free has completely changed how I handle stress. The tapping sessions are surprisingly effective and the AI guide feels like a real friend who knows exactly what to say. I use it before every big meeting and it actually works. Highly recommend for anyone with anxiety.",
+        text: "Calmutopia has completely changed how I handle stress. The tapping sessions are surprisingly effective and the AI guide feels like a real friend who knows exactly what to say. I use it before every big meeting and it actually works. Highly recommend for anyone with anxiety.",
       },
       {
         name: 'Selin',
@@ -206,7 +206,7 @@ const STEPS = [
   {
     key: 'notifications',
     type: 'notifications',
-    title: 'Stay on track with Feel Free notifications',
+    title: 'Stay on track with Calmutopia notifications',
   },
   {
     key: 'referralCode',
@@ -248,15 +248,15 @@ const FADE_IN_MS = 220;
 const MAX_TOPIC_LEN = 60;
 
 // Pull the named concern out of the agent's closing summary, e.g.
-//   EN: "Got it — the stress around work meetings. I'm optimizing your Feel Free system for you now."
-//   TR: "Anladım — iş toplantılarındaki stres. Feel Free sistemini şimdi senin için optimize ediyorum."
+//   EN: "Got it — the stress around work meetings. I'm optimizing your Calmutopia system for you now."
+//   TR: "Anladım — iş toplantılarındaki stres. Calmutopia sistemini şimdi senin için optimize ediyorum."
 function extractConcernTopic(summary) {
   if (!summary || typeof summary !== 'string') return null;
   const cleaned = summary.replace(/\s+/g, ' ').trim();
 
   const patterns = [
     /got it[^.?!]*?[—–-]\s*(.+?)(?:\.\s*i'?m optimizing|$)/i,
-    /anladım[^.?!]*?[—–-]\s*(.+?)(?:\.\s*feel free|$)/i,
+    /anladım[^.?!]*?[—–-]\s*(.+?)(?:\.\s*calmutopia|$)/i,
   ];
   for (const re of patterns) {
     const m = cleaned.match(re);
@@ -273,7 +273,7 @@ function extractConcernTopic(summary) {
 function detectLanguage(...sources) {
   for (const src of sources) {
     if (!src) continue;
-    if (/anladım|feel free sistemini|problemini|düzeltiyorum/i.test(src)) return 'tr';
+    if (/anladım|calmutopia sistemini|problemini|düzeltiyorum/i.test(src)) return 'tr';
     if (/got it|i'?m optimizing|fixing your/i.test(src)) return 'en';
     if (/[ğıöşüçĞİÖŞÜÇ]/.test(src)) return 'tr';
   }
@@ -604,7 +604,7 @@ export default function QuestionsScreen() {
               <View style={styles.notifDialog}>
                 <View style={styles.notifDialogBody}>
                   <Text style={styles.notifDialogText}>
-                    Feel Free would like to send you Notifications
+                    Calmutopia would like to send you Notifications
                   </Text>
                 </View>
                 <View style={styles.notifDialogDivider} />

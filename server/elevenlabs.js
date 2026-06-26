@@ -20,7 +20,7 @@ async function listAgents() {
 // Create a new EFT tapping conversational AI agent
 async function createAgent() {
   const agentConfig = {
-    name: 'FEEL FREE - EFT Tapping Guide',
+    name: 'CALMUTOPIA - EFT Tapping Guide',
     conversation_config: {
       agent: {
         prompt: {
@@ -81,7 +81,7 @@ async function createAgent() {
 async function getOrCreateAgent() {
   try {
     const agents = await listAgents();
-    const existing = agents.find((a) => a.name === 'FEEL FREE - EFT Tapping Guide');
+    const existing = agents.find((a) => a.name === 'CALMUTOPIA - EFT Tapping Guide');
 
     if (existing) {
       console.log(`Reusing existing agent: ${existing.agent_id}`);
@@ -126,9 +126,9 @@ async function updateAgent(agentId, updates) {
   return await res.json();
 }
 
-const ANALYSIS_AGENT_NAME = 'FEEL FREE - Self Analysis';
+const ANALYSIS_AGENT_NAME = 'CALMUTOPIA - Self Analysis';
 
-const ANALYSIS_PROMPT = `You're a warm, grounded human friend doing a quick check-in with someone who just opened FEEL FREE for the first time. You're not a script and you're not a chatbot — talk the way a calm, caring friend would on the phone.
+const ANALYSIS_PROMPT = `You're a warm, grounded human friend doing a quick check-in with someone who just opened CALMUTOPIA for the first time. You're not a script and you're not a chatbot — talk the way a calm, caring friend would on the phone.
 
 WHAT YOU'RE TRYING TO DO
 Understand the one main thing they'd like to work on. Keep the whole conversation short — usually 1 to 3 of their turns.
@@ -154,12 +154,12 @@ NAMING THE CONCERN — STRICT
 - Never use generic placeholders like "your concern" or "your problem".
 
 CLOSING LINE — MANDATORY, VERBATIM
-EN: "I'm optimizing your Feel Free system for you now."
-TR: "Feel Free sistemini şimdi senin için optimize ediyorum."
+EN: "I'm optimizing your Calmutopia system for you now."
+TR: "Calmutopia sistemini şimdi senin için optimize ediyorum."
 
 EXAMPLES OF A GOOD FINAL TURN
-EN: "Got it — fear of driving. I'm optimizing your Feel Free system for you now."
-TR: "Anladım — araba sürme korkusu. Feel Free sistemini şimdi senin için optimize ediyorum."`;
+EN: "Got it — fear of driving. I'm optimizing your Calmutopia system for you now."
+TR: "Anladım — araba sürme korkusu. Calmutopia sistemini şimdi senin için optimize ediyorum."`;
 
 const ANALYSIS_FIRST_MESSAGE_EN = "How has life been lately? Is there anything you'd like to fix?";
 const ANALYSIS_FIRST_MESSAGE_TR = "Son zamanlarda hayat nasıl gidiyor? Düzeltmek istediğin bir şey var mı?";

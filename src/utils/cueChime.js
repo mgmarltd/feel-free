@@ -40,7 +40,7 @@ async function ensureChimeFile() {
   if (cachedUri) return cachedUri;
   const pcmB64 = generateChimePcmBase64();
   const wavB64 = pcmChunksToWavBase64([pcmB64], SAMPLE_RATE, 1, 16);
-  const uri = FileSystem.cacheDirectory + 'feelfree_ready_chime.wav';
+  const uri = FileSystem.cacheDirectory + 'calmutopia_ready_chime.wav';
   await FileSystem.writeAsStringAsync(uri, wavB64, {
     encoding: FileSystem.EncodingType.Base64,
   });
