@@ -17,6 +17,8 @@ export default function Prompts() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [view, setView] = useState<"editor" | "defaults">("editor");
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   function load() {
     setError(null);
@@ -34,6 +36,16 @@ export default function Prompts() {
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  }
+
+  async function copyText(key: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500);
+    } catch {
+      flash("Copy failed — select and copy manually");
+    }
   }
 
   async function onSave(p: Prompt) {
@@ -89,15 +101,39 @@ export default function Prompts() {
         subtitle="View and edit the prompts that drive the voice agents. Changes apply to new sessions."
       />
 
-      <div className="card-pad mb-4 flex items-start gap-3 border-amber-200 bg-amber-50">
-        <span className="mt-0.5 text-amber-500">⚠</span>
-        <p className="text-sm text-amber-700">
-          These prompts control the live AI guide. Edits take effect on the <strong>next</strong> session
-          started after saving. Use <strong>Reset</strong> to restore the built-in default at any time.
-        </p>
+      {/* Sub-tabs: live editor vs read-only originals */}
+      <div className="mb-5 inline-flex rounded-xl border border-line bg-white p-1">
+        <button
+          className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            view === "editor" ? "bg-brand-600 text-white" : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setView("editor")}
+        >
+          Editor
+        </button>
+        <button
+          className={`rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            view === "defaults" ? "bg-brand-600 text-white" : "text-gray-600 hover:bg-gray-50"
+          }`}
+          onClick={() => setView("defaults")}
+        >
+          Base prompts
+        </button>
       </div>
 
-      <div className="space-y-6">
+      {view === "defaults" ? (
+        <DefaultsView groups={groups} copyText={copyText} copiedKey={copiedKey} />
+      ) : (
+        <>
+          <div className="card-pad mb-4 flex items-start gap-3 border-amber-200 bg-amber-50">
+            <span className="mt-0.5 text-amber-500">⚠</span>
+            <p className="text-sm text-amber-700">
+              These prompts control the live AI guide. Edits take effect on the <strong>next</strong> session
+              started after saving. Use <strong>Reset</strong> to restore the built-in default at any time.
+            </p>
+          </div>
+
+          <div className="space-y-6">
         {groups.map(([group, items]) => (
           <section key={group}>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">{group}</h2>
@@ -162,7 +198,9 @@ export default function Prompts() {
             </div>
           </section>
         ))}
-      </div>
+          </div>
+        </>
+      )}
 
       {toast && (
         <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
@@ -171,6 +209,68 @@ export default function Prompts() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+// Read-only reference of the built-in default prompts, always copyable —
+// independent of whatever is currently saved/customized.
+function DefaultsView({
+  groups,
+  copyText,
+  copiedKey,
+}: {
+  groups: [string, Prompt[]][];
+  copyText: (key: string, text: string) => void;
+  copiedKey: string | null;
+}) {
+  return (
+    <>
+      <div className="card-pad mb-4 flex items-start gap-3 border-line bg-gray-50">
+        <span className="mt-0.5 text-gray-400">ℹ</span>
+        <p className="text-sm text-gray-600">
+          These are the original built-in prompts shipped with the app — read-only. Copy any of them to
+          restore wording by hand, or as a backup before a big edit. The <strong>Editor</strong> tab is
+          where changes are saved.
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {groups.map(([group, items]) => (
+          <section key={group}>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-400">{group}</h2>
+            <div className="space-y-4">
+              {items.map((p) => {
+                const badge = LANG_BADGE[p.lang];
+                const copied = copiedKey === p.key;
+                return (
+                  <div key={p.key} className="card-pad">
+                    <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-gray-900">{p.label}</h3>
+                          <span className={`pill ${badge.cls}`}>{badge.text}</span>
+                        </div>
+                        <p className="mt-1 text-sm text-gray-500">{p.description}</p>
+                      </div>
+                      <button className="btn-outline shrink-0" onClick={() => copyText(p.key, p.default)}>
+                        {copied ? "Copied ✓" : "Copy"}
+                      </button>
+                    </div>
+                    <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-gray-50 p-3.5 font-mono text-[13px] leading-relaxed text-gray-700">
+                      {p.default}
+                    </pre>
+                    <div className="mt-1.5 flex items-center justify-between text-xs text-gray-400">
+                      <span className="font-mono">{p.key}</span>
+                      <span>{p.default.length} chars</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </>
   );
 }
