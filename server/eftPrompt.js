@@ -312,10 +312,11 @@ function buildFullLibraryBlock(lang = 'tr') {
   return cachedFullLibraryBlock[key];
 }
 
-function collectMatchingAffirmations(profile) {
+function collectMatchingAffirmations(profile, extraIssues = []) {
   const issues = [];
   if (profile?.knownIssues?.length) issues.push(...profile.knownIssues);
   if (profile?.currentIssue) issues.push(profile.currentIssue);
+  if (extraIssues?.length) issues.push(...extraIssues);
   if (!issues.length) return [];
   return affirmations.findByIssues(issues, { perIssue: 2 }).slice(0, 6);
 }
@@ -325,12 +326,100 @@ function resolveLanguage(userProfile, opts = {}) {
   return candidate === 'en' ? 'en' : 'tr';
 }
 
+// ─── Quick Sessions ────────────────────────────────────────────────────────
+// Presets behind the Home-screen "Quick Session" cards (and the featured
+// "Release & Let Go"). Each slug maps to a focused tapping theme: a spoken
+// label, a one-line focus the agent opens on, and issue keywords used to
+// pre-seed matching affirmations so the session is targeted from turn one —
+// no "what's up today?" round needed. Keep keys in sync with app/home.js.
+const QUICK_SESSION_TOPICS = {
+  release: {
+    label_en: 'Release & Let Go',
+    label_tr: 'Bırak ve Salıver',
+    focus_en: 'releasing whatever feels heavy right now and letting it flow out of the body',
+    focus_tr: 'şu an ağır gelen ne varsa onu bırakmak ve bedenden akıp gitmesine izin vermek',
+    issues: ['stress', 'overwhelm', 'sadness', 'kaygı', 'stres'],
+  },
+  'stress-relief': {
+    label_en: 'Stress Relief',
+    label_tr: 'Stres Rahatlama',
+    focus_en: 'easing the built-up stress and pressure sitting in the body',
+    focus_tr: 'bedende biriken stresi ve baskıyı hafifletmek',
+    issues: ['stress', 'overwhelm', 'pressure', 'stres', 'baskı'],
+  },
+  'anxiety-calm': {
+    label_en: 'Anxiety Calm',
+    label_tr: 'Kaygıyı Yatıştır',
+    focus_en: 'calming anxious, racing energy and coming back to a sense of safety',
+    focus_tr: 'kaygılı, hızlanan enerjiyi yatıştırmak ve güven hissine geri dönmek',
+    issues: ['anxiety', 'worry', 'panic', 'kaygı', 'panik'],
+  },
+  'morning-energy': {
+    label_en: 'Morning Energy',
+    label_tr: 'Sabah Enerjisi',
+    focus_en: 'clearing morning heaviness and inviting fresh, motivated energy for the day',
+    focus_tr: 'sabah ağırlığını dağıtmak ve güne taze, motive bir enerji davet etmek',
+    issues: ['motivation', 'tired', 'sadness', 'isteksizlik', 'yorgun'],
+  },
+  'better-sleep': {
+    label_en: 'Better Sleep',
+    label_tr: 'Daha İyi Uyku',
+    focus_en: 'releasing the tension that keeps the mind awake so the body can rest',
+    focus_tr: 'zihni uyanık tutan gerginliği bırakıp bedenin dinlenmesine izin vermek',
+    issues: ['sleep', 'insomnia', 'tired', 'uyku', 'gerginlik'],
+  },
+};
+
+function resolveQuickTopic(sessionType) {
+  if (!sessionType) return null;
+  return QUICK_SESSION_TOPICS[String(sessionType).toLowerCase()] || null;
+}
+
+// Build the focused-mode instruction block injected when a quick session is
+// active. Tells the agent the topic is pre-chosen, honors the SUD the user
+// already gave on the feeling screen, and keeps the round short.
+function buildQuickSessionBlock({ topic, feelingIntensity, lang }) {
+  if (!topic) return '';
+  const label = lang === 'en' ? topic.label_en : topic.label_tr;
+  const focus = lang === 'en' ? topic.focus_en : topic.focus_tr;
+  const sud = Number(feelingIntensity);
+  const hasSud = Number.isFinite(sud) && sud > 0;
+
+  if (lang === 'en') {
+    return [
+      '',
+      '# Quick Session (focused mode)',
+      `The user tapped the "${label}" quick session, so the topic is ALREADY chosen — do NOT ask "what's up today?". Open straight on this focus: ${focus}.`,
+      hasSud
+        ? `They already rated their starting intensity at ${sud} out of ten on the previous screen — acknowledge it briefly ("you said around ${sud} out of ten…") and do NOT ask for the starting SUD again. Go straight to locating the energy in the body.`
+        : 'Take one quick SUD reading, then move on.',
+      'Keep it SHORT and focused: greet in one line, locate the energy, run ONE tapping round on this theme, re-measure, and close — aim for roughly five minutes. Only branch into the NLP combo if the SUD genuinely stays high.',
+    ].join('\n');
+  }
+
+  return [
+    '',
+    '# Hızlı Seans (odaklı mod)',
+    `Kullanıcı "${label}" hızlı seansına dokundu, yani konu ZATEN belli — "bugün ne var?" diye SORMA. Doğrudan şu odakla başla: ${focus}.`,
+    hasSud
+      ? `Başlangıç şiddetini önceki ekranda zaten on üzerinden ${sud} olarak işaretledi — kısaca onayla ("on üzerinden ${sud} civarı demiştin…") ve başlangıç SUD'unu TEKRAR sorma. Doğrudan enerjiyi bedende bulmaya geç.`
+      : 'Tek bir hızlı SUD ölçümü al, sonra ilerle.',
+    'KISA ve odaklı tut: tek cümleyle selamla, enerjiyi bul, bu tema üzerine TEK bir tapping turu yap, tekrar ölç ve kapat — yaklaşık beş dakika hedefle. SUD gerçekten yüksek kalırsa NLP kombosuna dal.',
+  ].join('\n');
+}
+
 function buildDynamicPrompt(userProfile, opts = {}) {
   const lang = resolveLanguage(userProfile, opts);
   // Read the effective (possibly admin-edited) system prompt.
   const systemPrompt = lang === 'en'
     ? promptStore.get('eft_system_en')
     : promptStore.get('eft_system_tr');
+
+  // Quick-session context flows in via opts (preferred) or, for older clients,
+  // off the profile. It's transient — never persisted onto the stored profile.
+  const sessionType = opts.sessionType ?? userProfile?.sessionType;
+  const feelingIntensity = opts.feelingIntensity ?? userProfile?.feelingIntensity;
+  const quickTopic = resolveQuickTopic(sessionType);
 
   let contextSection = lang === 'en'
     ? '\n\n# User Info\n'
@@ -376,12 +465,16 @@ function buildDynamicPrompt(userProfile, opts = {}) {
   // bloat the prompt to ~9k tokens and dilute the conversational instructions.
   // If the matched list is empty (new user), we send nothing, and the agent
   // falls back to the root-emotion guidance in the Affirmation Source rule.
-  const matches = collectMatchingAffirmations(userProfile);
+  const matches = collectMatchingAffirmations(userProfile, quickTopic?.issues || []);
   const matchedBlock = formatAffirmationsBlock(matches, { lang });
+
+  // Focused-mode block — empty string for a normal open-ended session.
+  const quickBlock = buildQuickSessionBlock({ topic: quickTopic, feelingIntensity, lang });
 
   return (
     systemPrompt +
     contextSection +
+    quickBlock +
     (matchedBlock ? '\n\n' + matchedBlock : '')
   );
 }
@@ -397,6 +490,15 @@ function getFirstMessage(userProfile, opts = {}) {
 
   const name = userProfile.name;
   const sessionCount = userProfile.sessionCount || 0;
+
+  // Quick session → greet by naming the chosen theme, skip "what's up today?".
+  const quickTopic = resolveQuickTopic(opts.sessionType ?? userProfile?.sessionType);
+  if (quickTopic) {
+    const label = lang === 'en' ? quickTopic.label_en : quickTopic.label_tr;
+    return lang === 'en'
+      ? `${name}… let's do a quick "${label}" session. Take a breath — where do you feel it most right now?`
+      : `${name}… hadi kısa bir "${label}" seansı yapalım. Bir nefes al — şu an bunu en çok nerede hissediyorsun?`;
+  }
 
   if (lang === 'en') {
     if (sessionCount <= 1) return `${name}, hi again… how are you today?`;
@@ -418,4 +520,6 @@ module.exports = {
   getFirstMessage,
   collectMatchingAffirmations,
   resolveLanguage,
+  resolveQuickTopic,
+  QUICK_SESSION_TOPICS,
 };

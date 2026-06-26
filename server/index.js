@@ -185,16 +185,23 @@ app.post('/api/analysis/start', async (req, res) => {
 // Start a session — updates the agent prompt with user context, returns signed URL
 app.post('/api/session/start', async (req, res) => {
   try {
-    const { userProfile, userId = 'default' } = req.body;
+    const { userProfile = {}, userId = 'default' } = req.body;
 
     // Ensure agent exists
     if (!agentId) {
       agentId = await getOrCreateAgent();
     }
 
+    // Quick-session context (chosen topic + the SUD captured on the feeling
+    // screen) is transient per-call data, not profile data. Pull it aside so
+    // it shapes the prompt but never gets persisted onto the stored profile.
+    const sessionType = req.body.sessionType ?? userProfile.sessionType;
+    const feelingIntensity = req.body.feelingIntensity ?? userProfile.feelingIntensity;
+    const { sessionType: _st, feelingIntensity: _fi, ...cleanProfile } = userProfile;
+
     // Merge client-side profile with server-side stored data
     const storedProfile = userStore.getUser(userId) || {};
-    const mergedProfile = { ...storedProfile, ...userProfile };
+    const mergedProfile = { ...storedProfile, ...cleanProfile };
 
     // Save merged profile
     userStore.saveUser(userId, mergedProfile);
@@ -205,11 +212,13 @@ app.post('/api/session/start', async (req, res) => {
       `[session/start] language=${language}`,
       `(body=${req.body?.language || 'none'},`,
       `profile=${mergedProfile?.language || 'none'})`,
+      sessionType ? `quick=${sessionType} sud=${feelingIntensity ?? '?'}` : '',
     );
 
     // Build personalized prompt and first message in the chosen language
-    const dynamicPrompt = buildDynamicPrompt(mergedProfile, { language });
-    const firstMessage = getFirstMessage(mergedProfile, { language });
+    const promptOpts = { language, sessionType, feelingIntensity };
+    const dynamicPrompt = buildDynamicPrompt(mergedProfile, promptOpts);
+    const firstMessage = getFirstMessage(mergedProfile, promptOpts);
 
     // Update the agent with the personalized prompt + smooth-conversation settings
     try {

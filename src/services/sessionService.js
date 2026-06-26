@@ -26,6 +26,10 @@ class SessionService {
           userProfile,
           userId,
           language: userProfile?.language,
+          // Quick-session context — chosen topic + the SUD captured on the
+          // feeling screen. Lets the server build a focused quick prompt.
+          sessionType: userProfile?.sessionType,
+          feelingIntensity: userProfile?.feelingIntensity,
         }),
         signal: ctrl.signal,
       });

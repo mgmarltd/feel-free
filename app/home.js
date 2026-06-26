@@ -9,11 +9,13 @@ import { COLORS, FONTS } from '../src/constants/theme';
 import { useOnboarding } from '../src/context/OnboardingContext';
 import { getLanguage, setLanguage } from '../src/services/userProfile';
 
+// `key` must match a slug in server/eftPrompt.js QUICK_SESSION_TOPICS so the
+// session opens with the right focused prompt.
 const quickSessions = [
-  { title: 'Stress Relief', duration: '5 min', emoji: '🧘', color: 'rgba(139,92,246,0.2)' },
-  { title: 'Anxiety Calm', duration: '7 min', emoji: '🌊', color: 'rgba(59,130,246,0.2)' },
-  { title: 'Morning Energy', duration: '5 min', emoji: '☀️', color: 'rgba(245,158,11,0.2)' },
-  { title: 'Better Sleep', duration: '10 min', emoji: '🌙', color: 'rgba(99,102,241,0.2)' },
+  { key: 'stress-relief', title: 'Stress Relief', duration: '5 min', emoji: '🧘', color: 'rgba(139,92,246,0.2)' },
+  { key: 'anxiety-calm', title: 'Anxiety Calm', duration: '7 min', emoji: '🌊', color: 'rgba(59,130,246,0.2)' },
+  { key: 'morning-energy', title: 'Morning Energy', duration: '5 min', emoji: '☀️', color: 'rgba(245,158,11,0.2)' },
+  { key: 'better-sleep', title: 'Better Sleep', duration: '10 min', emoji: '🌙', color: 'rgba(99,102,241,0.2)' },
 ];
 
 const dailyTasks = [
@@ -108,7 +110,7 @@ export default function HomeScreen() {
             contentContainerStyle={styles.quickRow}
           >
             {quickSessions.map((session, i) => (
-              <TouchableOpacity key={i} activeOpacity={0.8} onPress={() => startSession(session.title.toLowerCase().replace(' ', '-'))} style={[styles.quickCard, { backgroundColor: session.color }]}>
+              <TouchableOpacity key={i} activeOpacity={0.8} onPress={() => startSession(session.key)} style={[styles.quickCard, { backgroundColor: session.color }]}>
                 <Text style={styles.quickEmoji}>{session.emoji}</Text>
                 <Text style={styles.quickTitle}>{session.title}</Text>
                 <Text style={styles.quickDuration}>{session.duration}</Text>
